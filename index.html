@@ -95,6 +95,18 @@
     .duck-avatar{position:relative;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;overflow:hidden;background:var(--green-100);font-size:22px;flex:0 0 auto}
     .duck-avatar .duck-fallback{position:absolute;inset:0;display:grid;place-items:center}
     .duck-avatar img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:transparent}
+    .duck-avatar.tiny{width:30px;height:30px;border-radius:10px;font-size:16px}
+    .icon-label{display:flex;align-items:center;gap:8px;min-width:0}
+    .icon-label > span:last-child{min-width:0}
+    .asset-icon{width:30px;height:30px;object-fit:contain;vertical-align:middle;display:inline-block}
+    .asset-icon.coin{width:24px;height:24px}
+    .section-duck-title{display:flex;align-items:center;gap:9px}
+    .section-duck-title .duck-avatar{width:40px;height:40px;border-radius:13px}
+    .debt-card{padding:14px;border:1px solid var(--line);border-radius:18px;background:white}
+    .debt-card + .debt-card{margin-top:9px}
+    .debt-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .debt-top strong{font-size:15px}
+    .debt-top .amount{font-size:13px}
     .budget-copy{min-width:0}
     .budget-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
     .budget-top strong{font-size:14px}
@@ -138,7 +150,8 @@
     .fab{position:fixed;right:max(18px,calc((100vw - 520px)/2 + 18px));bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:20px;border:0;background:var(--green-800);color:white;font-size:30px;line-height:1;box-shadow:0 10px 26px rgba(49,87,67,.28);z-index:25}
     .bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,520px);z-index:20;background:rgba(255,254,249,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
     .nav-btn{border:0;background:transparent;color:var(--muted);min-height:55px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:800}
-    .nav-btn .nav-icon{font-size:20px;line-height:1}
+    .nav-btn .nav-icon{width:28px;height:28px;display:grid;place-items:center;line-height:1}
+    .nav-btn .nav-icon img{width:100%;height:100%;object-fit:contain;display:block}
     .nav-btn.active{background:var(--green-100);color:var(--green-900)}
     .sheet-backdrop{position:fixed;inset:0;background:rgba(25,38,30,.34);z-index:60;display:none;align-items:flex-end;justify-content:center;padding-top:32px}
     .sheet-backdrop.open{display:flex}
@@ -201,11 +214,11 @@
   <button class="fab" id="quickAddBtn" type="button" aria-label="Add transaction">+</button>
 
   <nav class="bottom-nav" aria-label="Main navigation">
-    <button class="nav-btn active" data-tab="home" type="button"><span class="nav-icon">🏠</span><span>Home</span></button>
-    <button class="nav-btn" data-tab="transactions" type="button"><span class="nav-icon">🧾</span><span>Transactions</span></button>
-    <button class="nav-btn" data-tab="bills" type="button"><span class="nav-icon">🍋</span><span>Bills</span></button>
-    <button class="nav-btn" data-tab="planner" type="button"><span class="nav-icon">📋</span><span>Planner</span></button>
-    <button class="nav-btn" data-tab="goals" type="button"><span class="nav-icon">😇</span><span>Goals</span></button>
+    <button class="nav-btn active" data-tab="home" type="button"><span class="nav-icon"><img src="images/sticker-heart.png" alt=""></span><span>Home</span></button>
+    <button class="nav-btn" data-tab="transactions" type="button"><span class="nav-icon"><img src="images/sticker-coin.png" alt=""></span><span>Transactions</span></button>
+    <button class="nav-btn" data-tab="bills" type="button"><span class="nav-icon"><img src="images/sticker-crown.png" alt=""></span><span>Bills</span></button>
+    <button class="nav-btn" data-tab="planner" type="button"><span class="nav-icon"><img src="images/stickerbook-icon.png" alt=""></span><span>Planner</span></button>
+    <button class="nav-btn" data-tab="goals" type="button"><span class="nav-icon"><img src="images/sticker-sparkles.png" alt=""></span><span>Goals</span></button>
   </nav>
 
   <div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true">
@@ -333,6 +346,12 @@
     const c=CATEGORIES[category]||CATEGORIES.shopping;
     return `<span class="duck-avatar ${cls}" style="background:${c.color}"><span class="duck-fallback">${c.emoji}</span><img src="${c.asset}" alt="" onerror="this.hidden=true"></span>`;
   }
+  function assetIcon(path, cls='', alt=''){
+    return `<img class="asset-icon ${cls}" src="${path}" alt="${escapeHtml(alt)}" onerror="this.style.display='none'">`;
+  }
+  function coinIcon(cls='coin'){
+    return assetIcon('images/heart-coin.png',cls,'Heart coin');
+  }
 
   function billOccurrencesBetween(bill,startISO,endISO){
     const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end) return [];
@@ -428,11 +447,10 @@
       <div class="card">${bills.length?`<div class="list">${bills.map(({bill,date})=>billRow(bill,date,true)).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills added yet</strong><div class="small">Add recurring bills and I’ll help match them to each paycheck.</div></div>`}</div>
       <div class="section-head"><h2>Goals</h2><button type="button" data-go="goals">See all</button></div>
       <div class="card">${goals.length?goals.map(goalMini).join(''):`<div class="empty"><div class="big">😇</div><strong>No savings goals yet</strong><div class="small">Create a goal and savings transactions can fill it automatically.</div></div>`}</div>
-      ${state.debts.length?`<div class="section-head"><h2>Debt snapshot</h2><button type="button" id="manageDebtHome">Manage</button></div><div class="card"><div class="two-col"><div class="metric"><span>Total remaining</span><strong>${money(totalDebt)}</strong></div><div class="metric"><span>This paycheck</span><strong>${money(categorySpent(plan,'debt'))}</strong></div></div></div>`:''}
+      ${state.debts.length?`<div class="section-head"><h2>Debt snapshot</h2><button type="button" data-go="goals">Manage</button></div><div class="card"><div class="two-col"><div class="metric"><span>Total remaining</span><strong>${money(totalDebt)}</strong></div><div class="metric"><span>This paycheck</span><strong>${money(categorySpent(plan,'debt'))}</strong></div></div></div>`:''}
       <div class="section-head"><h2>Recent activity</h2><button type="button" data-go="transactions">See all</button></div>
-      <div class="card">${recent.length?`<div class="list">${recent.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big">🪙</div><strong>No transactions yet</strong><div class="small">Tap + to add your first one.</div></div>`}</div>`;
+      <div class="card">${recent.length?`<div class="list">${recent.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big">${coinIcon('')}</div><strong>No transactions yet</strong><div class="small">Tap + to add your first one.</div></div>`}</div>`;
     $$('[data-go]',root).forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
-    $('#manageDebtHome')?.addEventListener('click',()=>openSettings('debt'));
     $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
   }
 
@@ -484,7 +502,7 @@
       return;
     }
     const sug=suggestedBills(plan), ua=unassigned(plan);
-    const alloc=BUDGET_CATEGORIES.map(c=>`<div class="alloc"><strong>${CATEGORIES[c].emoji} ${CATEGORIES[c].label}</strong><span>${money(plan.budgets?.[c])}</span><div class="small muted">${money(categorySpent(plan,c))} used</div></div>`).join('');
+    const alloc=BUDGET_CATEGORIES.map(c=>`<div class="alloc"><strong class="icon-label">${duck(c,'tiny')}<span>${CATEGORIES[c].label}</span></strong><span>${money(plan.budgets?.[c])}</span><div class="small muted">${money(categorySpent(plan,c))} used</div></div>`).join('');
     const history=state.plans.filter(p=>p.id!==plan.id).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate))).slice(0,5);
     root.innerHTML=`
       <div class="page-title"><div><h2>Paycheck Planner</h2><div class="small muted">Give every dollar a job</div></div><button class="btn primary" id="newPlanBtn" type="button">New plan</button></div>
@@ -498,7 +516,7 @@
         <div class="btn-row" style="margin-top:12px"><button class="btn soft" id="editPlanBtn" type="button">Edit plan</button><button class="btn soft" id="activateBillSuggestion" type="button">Use suggested bills</button></div>
       </div>
       <div class="section-head"><h2>Bill suggestion</h2></div>
-      <div class="card">${sug.items.length?`<div class="notice">🍋 Bills due before your next payday total <strong>${money(sug.total)}</strong>.</div><div class="list" style="margin-top:10px">${sug.items.map(x=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(x.bill.name)}</strong><span>${formatDate(x.date)}</span></div><div class="amount">${money(x.bill.amount)}</div></div>`).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills due in this paycheck window</strong><div class="small">Add bills on the Bills tab and I’ll suggest them here.</div></div>`}</div>
+      <div class="card">${sug.items.length?`<div class="notice"><span class="icon-label">${duck('bills','tiny')}<span>Bills due before your next payday total <strong>${money(sug.total)}</strong>.</span></span></div><div class="list" style="margin-top:10px">${sug.items.map(x=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(x.bill.name)}</strong><span>${formatDate(x.date)}</span></div><div class="amount">${money(x.bill.amount)}</div></div>`).join('')}</div>`:`<div class="empty"><div class="big">${duck('bills')}</div><strong>No bills due in this paycheck window</strong><div class="small">Add bills on the Bills tab and I’ll suggest them here.</div></div>`}</div>
       ${history.length?`<div class="section-head"><h2>Past plans</h2></div><div class="card"><div class="list">${history.map(p=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(p.name||'Paycheck Plan')}</strong><span>${formatDate(p.startDate)} → ${formatDate(p.nextPayDate)}</span></div><div class="amount">${money(p.income)}</div><button class="mini-action activate-plan" data-id="${p.id}" type="button">Make current</button></div>`).join('')}</div></div>`:''}`;
     $('#newPlanBtn')?.addEventListener('click',()=>openPlanForm(null,true));
     $('#editPlanBtn')?.addEventListener('click',()=>openPlanForm(plan.id));
@@ -512,12 +530,19 @@
 
   function renderGoals(){
     const root=$('#page-goals');
+    const debtHtml=state.debts.length?state.debts.map(debtFull).join(''):`<div class="empty">${duck('debt')}<strong>No debt trackers yet</strong><div class="small">Add a debt nickname and balance so you can watch it shrink as you make payments.</div></div>`;
     root.innerHTML=`
-      <div class="page-title"><div><h2>Goals</h2><div class="small muted">Save toward something good</div></div><button class="btn primary" id="addGoalBtn" type="button">+ Goal</button></div>
-      <div class="card">${state.goals.length?`<div class="list">${state.goals.map(goalFull).join('')}</div>`:`<div class="empty"><div class="big">😇</div><strong>No goals yet</strong><div class="small">Emergency fund, a trip, a purchase—anything you want to build toward.</div></div>`}</div>`;
+      <div class="page-title"><div><h2>Goals</h2><div class="small muted">Save it up and pay it down</div></div></div>
+      <div class="section-head"><h2 class="section-duck-title">${duck('savings')}<span>Goals</span></h2><button class="btn primary" id="addGoalBtn" type="button">+ Goal</button></div>
+      <div class="card">${state.goals.length?`<div class="list">${state.goals.map(goalFull).join('')}</div>`:`<div class="empty">${duck('savings')}<strong>No goals yet</strong><div class="small">Emergency fund, a trip, a purchase—anything you want to build toward.</div></div>`}</div>
+      <div class="section-head"><h2 class="section-duck-title">${duck('debt')}<span>Debt Tracker</span></h2><button class="btn soft" id="addDebtBtn" type="button">+ Debt</button></div>
+      <div class="card">${debtHtml}</div>`;
     $('#addGoalBtn')?.addEventListener('click',()=>openGoalForm());
     $$('.goal-edit',root).forEach(b=>b.addEventListener('click',()=>openGoalForm(b.dataset.id)));
     $$('.goal-add',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'savings',goalId:b.dataset.id})));
+    $('#addDebtBtn')?.addEventListener('click',()=>openDebtForm());
+    $$('.debt-edit',root).forEach(b=>b.addEventListener('click',()=>openDebtForm(b.dataset.id)));
+    $$('.debt-pay',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'debt',debtId:b.dataset.id})));
   }
   function goalMini(goal){
     const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
@@ -526,6 +551,11 @@
   function goalFull(goal){
     const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
     return `<div class="goal-card"><div class="goal-top"><div><strong>${escapeHtml(goal.name)}</strong><div class="small muted">${pct.toFixed(0)}% complete</div></div><div class="amount">${money(saved)} / ${money(target)}</div></div><div class="progress"><span style="width:${pct}%;background:var(--savings)"></span></div><div class="goal-actions"><button class="mini-action goal-add" data-id="${goal.id}" type="button">+ Add savings</button><button class="mini-action goal-edit" data-id="${goal.id}" type="button">Edit</button></div></div>`;
+  }
+  function debtFull(debt){
+    const start=num(debt.startingBalance), remaining=debtRemaining(debt), paid=Math.max(0,start-remaining);
+    const pct=start>0?Math.min(100,(paid/start)*100):100;
+    return `<div class="debt-card"><div class="debt-top"><div class="icon-label">${duck('debt','tiny')}<div><strong>${escapeHtml(debt.name)}</strong><div class="small muted">${pct.toFixed(0)}% paid off${num(debt.minimumPayment)>0?` • Min ${money(debt.minimumPayment)}`:''}</div></div></div><div class="amount">${money(remaining)} left</div></div><div class="progress"><span style="width:${pct}%;background:var(--debt)"></span></div><div class="goal-actions"><button class="mini-action debt-pay" data-id="${debt.id}" type="button">+ Payment</button><button class="mini-action debt-edit" data-id="${debt.id}" type="button">Edit</button></div></div>`;
   }
 
   function setTab(tab){
@@ -559,7 +589,7 @@
         <div class="field"><label for="txAmount">Amount</label><input id="txAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${existing?escapeHtml(existing.amount):''}" placeholder="0.00"></div>
         <div class="field" id="categoryField"><label>Category duck</label><div class="category-picker" id="categoryPicker">${['food','fun','bills','shopping'].map(c=>`<button type="button" class="cat-choice ${category===c?'selected':''}" data-category="${c}">${duck(c)}<span>${CATEGORIES[c].label}</span></button>`).join('')}</div></div>
         <div class="field hidden" id="goalField"><label for="txGoal">Savings goal</label><select id="txGoal"><option value="">No specific goal</option>${state.goals.map(g=>`<option value="${g.id}" ${(existing?.goalId||preset.goalId)===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}</select></div>
-        <div class="field hidden" id="debtField"><label for="txDebt">Debt</label><select id="txDebt"><option value="">Choose debt</option>${state.debts.map(d=>`<option value="${d.id}" ${(existing?.debtId||preset.debtId)===d.id?'selected':''}>${escapeHtml(d.name)}</option>`).join('')}</select>${state.debts.length?'':'<div class="help">Add a debt from Settings first.</div>'}</div>
+        <div class="field hidden" id="debtField"><label for="txDebt">Debt</label><select id="txDebt"><option value="">Choose debt</option>${state.debts.map(d=>`<option value="${d.id}" ${(existing?.debtId||preset.debtId)===d.id?'selected':''}>${escapeHtml(d.name)}</option>`).join('')}</select>${state.debts.length?'':'<div class="help">Add a debt from the Goals tab first.</div>'}</div>
         <div class="field hidden" id="billField"><label for="txBill">Bill</label><select id="txBill"><option value="">General bill / no link</option>${state.bills.map(b=>`<option value="${b.id}" ${existing?.billId===b.id?'selected':''}>${escapeHtml(b.name)}</option>`).join('')}</select></div>
         <div class="field"><label for="txNote">What was it?</label><input id="txNote" maxlength="80" value="${escapeHtml(existing?.note||'')}" placeholder="Lunch, Target, refund…"></div>
         <div class="field-row"><div class="field"><label for="txDate">Date</label><input id="txDate" type="date" required value="${escapeHtml(existing?.date||todayISO())}"></div><div class="field"><label for="txPlan">Paycheck plan</label><select id="txPlan"><option value="">No plan</option>${plans.map(p=>`<option value="${p.id}" ${(existing?.planId||plan?.id)===p.id?'selected':''}>${escapeHtml(p.name||formatDate(p.startDate))}</option>`).join('')}</select></div></div>
@@ -639,14 +669,14 @@
         <div class="field"><label for="planIncome">Paycheck amount</label><input id="planIncome" inputmode="decimal" type="number" min="0" step="0.01" required value="${p?escapeHtml(p.income):''}" placeholder="0.00"><div class="help">Put your main paycheck here. Use an Income transaction later for refunds or extra money.</div></div>
         <div class="field-row"><div class="field"><label for="planStart">Pay date</label><input id="planStart" type="date" required value="${start}"></div><div class="field"><label for="planNext">Next payday</label><input id="planNext" type="date" required value="${next}"></div></div>
         <div class="divider"></div>
-        ${BUDGET_CATEGORIES.map(c=>`<div class="field"><label for="budget_${c}">${CATEGORIES[c].emoji} ${CATEGORIES[c].label}</label><input id="budget_${c}" inputmode="decimal" type="number" min="0" step="0.01" value="${p?escapeHtml(p.budgets?.[c]||0):'0'}"></div>`).join('')}
+        ${BUDGET_CATEGORIES.map(c=>`<div class="field"><label class="icon-label" for="budget_${c}">${duck(c,'tiny')}<span>${CATEGORIES[c].label}</span></label><input id="budget_${c}" inputmode="decimal" type="number" min="0" step="0.01" value="${p?escapeHtml(p.budgets?.[c]||0):'0'}"></div>`).join('')}
         <div class="notice" id="planMath">Enter your paycheck and category amounts to see what’s unassigned.</div>
         <button class="btn primary full" type="submit">${p?'Save plan':'Start this paycheck plan'}</button>
         ${p?'<button class="btn danger full" id="deletePlanBtn" type="button">Delete plan</button>':''}
       </form>`);
     const updateMath=()=>{
       const income=num($('#planIncome').value); const allocated=BUDGET_CATEGORIES.reduce((s,c)=>s+num($(`#budget_${c}`).value),0); const left=income-allocated;
-      $('#planMath').innerHTML=`🪙 <strong>${money(left)}</strong> ${left>=0?'unassigned':'over-planned'} from this paycheck.`;
+      $('#planMath').innerHTML=`${coinIcon()} <strong>${money(left)}</strong> ${left>=0?'unassigned':'over-planned'} from this paycheck.`;
       $('#planMath').classList.toggle('danger',left<0);
     };
     ['planIncome',...BUDGET_CATEGORIES.map(c=>'budget_'+c)].forEach(id2=>$(`#${id2}`)?.addEventListener('input',updateMath)); updateMath();
@@ -690,21 +720,14 @@
     $('#deleteDebtBtn')?.addEventListener('click',()=>{if(confirm('Delete this debt tracker? Debt payment transactions will stay.')){state.debts=state.debts.filter(x=>x.id!==d.id);closeSheet();saveState('Debt deleted');}});
   }
 
-  function openSettings(section='top'){
-    const debtHtml=state.debts.length?state.debts.map(d=>`<div class="list-item">${duck('debt')}<div class="item-copy"><strong>${escapeHtml(d.name)}</strong><span>${money(debtRemaining(d))} remaining • Min ${money(d.minimumPayment||0)}</span></div><button class="mini-action debt-pay" data-id="${d.id}" type="button">Pay</button><button class="mini-action debt-edit" data-id="${d.id}" type="button">Edit</button></div>`).join(''):'<div class="small muted">No debts added.</div>';
+  function openSettings(){
     openSheet('Settings',`
-      <div id="settingsTop"></div>
-      <div class="settings-section" id="debtSettings"><h3>😈 Debt trackers</h3><div class="list">${debtHtml}</div><button class="btn soft full" id="addDebtBtn" type="button" style="margin-top:10px">+ Add debt</button></div>
       <div class="settings-section"><h3>💾 Backup</h3><div class="notice">Your budget stays in this browser on this device. Export a backup occasionally—especially before clearing browser data or changing the GitHub Pages URL.</div><div class="btn-row" style="margin-top:10px"><button class="btn soft" id="exportBtn" type="button">Export backup</button><label class="btn soft" style="display:grid;place-items:center;text-align:center"><input id="importInput" type="file" accept="application/json,.json" hidden>Import backup</label></div></div>
       <div class="settings-section"><h3>🔒 Privacy</h3><div class="small muted">No bank login, card number, routing number, or account number is needed. This version has no server and sends no budget data anywhere.</div></div>
       <div class="settings-section"><h3>Reset</h3><button class="btn danger full" id="resetBtn" type="button">Erase all budget data on this device</button></div>`);
-    $('#addDebtBtn').addEventListener('click',()=>openDebtForm());
-    $$('.debt-edit').forEach(b=>b.addEventListener('click',()=>openDebtForm(b.dataset.id)));
-    $$('.debt-pay').forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'debt',debtId:b.dataset.id})));
     $('#exportBtn').addEventListener('click',exportBackup);
     $('#importInput').addEventListener('change',importBackup);
     $('#resetBtn').addEventListener('click',()=>{if(confirm('Erase ALL Duck Budget data saved in this browser? This cannot be undone unless you exported a backup.')){localStorage.removeItem(STORAGE_KEY);state=defaultState();closeSheet();setTab('home');renderAll();showToast('All local data erased');}});
-    if(section==='debt') setTimeout(()=>$('#debtSettings')?.scrollIntoView({behavior:'smooth',block:'start'}),40);
   }
 
   function exportBackup(){
