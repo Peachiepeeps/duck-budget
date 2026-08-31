@@ -4,12 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#78b98b" />
+  <meta name="application-name" content="Duck Budget" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Duck Budget" />
   <title>Duck Budget</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/budgeticon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="images/budgeticon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="images/budgeticon-512.png" />
   <style>
     :root {
       --green-900:#315743;
@@ -283,6 +287,17 @@
   let state = loadState();
   let currentTab = 'home';
   let toastTimer = null;
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    showToast('Duck Budget installed!');
+  });
+
 
   function loadState(){
     try{
@@ -720,11 +735,31 @@
     $('#deleteDebtBtn')?.addEventListener('click',()=>{if(confirm('Delete this debt tracker? Debt payment transactions will stay.')){state.debts=state.debts.filter(x=>x.id!==d.id);closeSheet();saveState('Debt deleted');}});
   }
 
+  function isRunningStandalone(){
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  async function installDuckBudget(){
+    if(isRunningStandalone()){
+      showToast('Duck Budget is already installed');
+      return;
+    }
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(err){}
+      deferredInstallPrompt = null;
+      return;
+    }
+    alert('To add Duck Budget as an app, open your browser menu/share menu and choose “Add to Home Screen” or “Install app.” Once added, it will open in its own app-style window.');
+  }
+
   function openSettings(){
     openSheet('Settings',`
+      <div class="settings-section"><h3>📱 App</h3><div class="notice">${isRunningStandalone() ? 'Duck Budget is already running as an installed app.' : 'Install Duck Budget on your Home Screen so it opens like its own app. Your budget still stays only on this device.'}</div>${isRunningStandalone() ? '' : '<button class="btn primary full" id="installAppBtn" type="button" style="margin-top:10px">Install / Add to Home Screen</button>'}</div>
       <div class="settings-section"><h3>💾 Backup</h3><div class="notice">Your budget stays in this browser on this device. Export a backup occasionally—especially before clearing browser data or changing the GitHub Pages URL.</div><div class="btn-row" style="margin-top:10px"><button class="btn soft" id="exportBtn" type="button">Export backup</button><label class="btn soft" style="display:grid;place-items:center;text-align:center"><input id="importInput" type="file" accept="application/json,.json" hidden>Import backup</label></div></div>
       <div class="settings-section"><h3>🔒 Privacy</h3><div class="small muted">No bank login, card number, routing number, or account number is needed. This version has no server and sends no budget data anywhere.</div></div>
       <div class="settings-section"><h3>Reset</h3><button class="btn danger full" id="resetBtn" type="button">Erase all budget data on this device</button></div>`);
+    $('#installAppBtn')?.addEventListener('click',installDuckBudget);
     $('#exportBtn').addEventListener('click',exportBackup);
     $('#importInput').addEventListener('change',importBackup);
     $('#resetBtn').addEventListener('click',()=>{if(confirm('Erase ALL Duck Budget data saved in this browser? This cannot be undone unless you exported a backup.')){localStorage.removeItem(STORAGE_KEY);state=defaultState();closeSheet();setTab('home');renderAll();showToast('All local data erased');}});
@@ -750,6 +785,12 @@
   $('#sheetBackdrop').addEventListener('click',e=>{if(e.target===$('#sheetBackdrop'))closeSheet();});
   $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheetBackdrop').classList.contains('open'))closeSheet();});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
+  }
 
   renderAll();
 })();
