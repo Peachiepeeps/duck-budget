@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Duck Budget" />
   <title>Duck Budget</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="budgeticon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="images/budgeticon-180.png" />
   <style>
     :root {
       --green-900:#315743;
@@ -182,7 +182,7 @@
   <main class="app" id="app">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark"><img src="budgeticon.png" alt="" onerror="this.remove();this.parentElement.textContent='🦆'" /></div>
+        <div class="brand-mark"><img src="images/budgeticon.png" alt="" onerror="this.remove();this.parentElement.textContent='🦆'" /></div>
         <div>
           <h1>Duck Budget</h1>
           <p id="todayLabel">Your cozy paycheck planner</p>
@@ -227,13 +227,13 @@
 
   const STORAGE_KEY = 'duckBudget_v1';
   const CATEGORIES = {
-    income:   { label:'Income',   emoji:'🎩', asset:'images/gentleman-duck.png', color:'var(--income)' },
-    bills:    { label:'Bills',    emoji:'🍋', asset:'images/lemon-duck.png',     color:'var(--bills)' },
-    food:     { label:'Food',     emoji:'🍔', asset:'images/burger-duck.png',    color:'var(--food)' },
-    fun:      { label:'Fun',      emoji:'🎉', asset:'images/party-duck.png',     color:'var(--fun)' },
-    shopping: { label:'Shopping / Other', emoji:'🐥', asset:'images/tiny-ducks.png', color:'var(--shopping)' },
-    savings:  { label:'Savings',  emoji:'😇', asset:'images/angel-duck.png',     color:'var(--savings)' },
-    debt:     { label:'Debt',     emoji:'😈', asset:'images/devil-duck.png',     color:'var(--debt)' }
+    income:   { label:'Income',   emoji:'🎩', asset:'images/Fancy-duck.PNG', color:'var(--income)' },
+    bills:    { label:'Bills',    emoji:'🍋', asset:'images/Lemon-duck.PNG',     color:'var(--bills)' },
+    food:     { label:'Food',     emoji:'🍔', asset:'images/Burger-duck.PNG',    color:'var(--food)' },
+    fun:      { label:'Fun',      emoji:'🎉', asset:'images/Party-hat-duck.PNG',     color:'var(--fun)' },
+    shopping: { label:'Shopping / Other', emoji:'🐥', asset:'images/pile-of-tiny-ducks.png', color:'var(--shopping)' },
+    savings:  { label:'Savings',  emoji:'😇', asset:'images/Angel-duck.PNG',     color:'var(--savings)' },
+    debt:     { label:'Debt',     emoji:'😈', asset:'images/Demon-duck.PNG',     color:'var(--debt)' }
   };
   const BUDGET_CATEGORIES = ['bills','food','fun','shopping','savings','debt'];
   const FLEX_CATEGORIES = ['food','fun','shopping'];
