@@ -344,7 +344,7 @@
 
   function duck(category, cls=''){
     const c=CATEGORIES[category]||CATEGORIES.shopping;
-    return `<span class="duck-avatar ${cls}" style="background:${c.color}"><span class="duck-fallback" hidden>${c.emoji}</span><img src="${c.asset}" alt="" onerror="this.hidden=true;this.previousElementSibling.hidden=false"></span>`;
+    return `<span class="duck-avatar ${cls}" style="background:${c.color}"><img src="${c.asset}" alt="" onerror="this.style.display='none'"></span>`;
   }
   function assetIcon(path, cls='', alt=''){
     return `<img class="asset-icon ${cls}" src="${path}" alt="${escapeHtml(alt)}" onerror="this.style.display='none'">`;
