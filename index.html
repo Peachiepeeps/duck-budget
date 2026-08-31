@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#78b98b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Duck Budget" />
+  <title>Duck Budget</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="budgeticon.png" />
+  <style>
+    :root {
+      --green-900:#315743;
+      --green-800:#3e6a51;
+      --green-700:#4e7f60;
+      --green-600:#66a77d;
+      --green-500:#78b98b;
+      --green-300:#b9dfc3;
+      --green-200:#d6eddc;
+      --green-100:#edf8ef;
+      --cream:#fffaf0;
+      --paper:#fffef9;
+      --ink:#2f3a33;
+      --muted:#758078;
+      --line:#dfe8e1;
+      --shadow:0 8px 24px rgba(45,74,57,.10);
+      --danger:#b44b56;
+      --danger-soft:#f9e4e6;
+      --warning:#a77722;
+      --warning-soft:#fff1cf;
+      --food:#f4b46f;
+      --fun:#eaa7bd;
+      --bills:#f2d66b;
+      --shopping:#c9b2e8;
+      --savings:#9ed7b0;
+      --debt:#ee9a9a;
+      --income:#9bbfd9;
+    }
+    *{box-sizing:border-box}
+    html{background:var(--green-100)}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:linear-gradient(180deg,#f6fbf7 0%,#edf7ef 100%);
+      font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      min-height:100dvh;
+    }
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(102,167,125,.35);outline-offset:2px}
+    .app{
+      width:min(100%,520px);
+      margin:0 auto;
+      min-height:100dvh;
+      padding:calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand-mark{width:44px;height:44px;border-radius:14px;background:var(--green-200);display:grid;place-items:center;font-size:24px;overflow:hidden;border:1px solid rgba(49,87,67,.08)}
+    .brand-mark img{width:100%;height:100%;object-fit:cover}
+    .brand h1{font-size:21px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.02em}
+    .brand p{margin:3px 0 0;color:var(--muted);font-size:12px}
+    .icon-btn{border:0;background:var(--paper);width:44px;height:44px;border-radius:14px;box-shadow:var(--shadow);display:grid;place-items:center;font-size:19px;color:var(--green-900)}
+    .page{display:none;animation:fade .18s ease}
+    .page.active{display:block}
+    @keyframes fade{from{opacity:.5;transform:translateY(2px)}to{opacity:1;transform:none}}
+    .card{background:var(--paper);border:1px solid rgba(49,87,67,.08);border-radius:22px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+    .hero{background:linear-gradient(145deg,#416d53,#6eaa7d);color:white;padding:20px;position:relative;overflow:hidden}
+    .hero::after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.08);right:-85px;top:-90px}
+    .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:800;opacity:.78}
+    .hero-value{font-size:42px;line-height:1.05;font-weight:900;letter-spacing:-.04em;margin:6px 0 4px;word-break:break-word}
+    .hero-sub{font-size:13px;opacity:.9}
+    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;position:relative;z-index:1}
+    .hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px}
+    .hero-stat small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.72}
+    .hero-stat strong{display:block;font-size:16px;margin-top:2px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 10px}
+    .section-head h2{font-size:16px;margin:0;letter-spacing:-.01em}
+    .section-head button,.text-btn{border:0;background:none;color:var(--green-700);font-weight:800;padding:6px;font-size:13px}
+    .empty{text-align:center;padding:24px 10px;color:var(--muted)}
+    .empty .big{font-size:34px;margin-bottom:6px}
+    .empty strong{display:block;color:var(--ink);margin-bottom:4px}
+    .btn{border:0;border-radius:14px;padding:12px 15px;font-weight:800;min-height:44px}
+    .btn.primary{background:var(--green-700);color:white}
+    .btn.soft{background:var(--green-100);color:var(--green-900)}
+    .btn.warn{background:var(--warning-soft);color:var(--warning)}
+    .btn.danger{background:var(--danger-soft);color:var(--danger)}
+    .btn.full{width:100%}
+    .btn-row{display:flex;gap:9px;flex-wrap:wrap}
+    .btn-row .btn{flex:1 1 130px}
+    .budget-list{display:grid;gap:11px}
+    .budget-row{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center}
+    .duck-avatar{position:relative;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;overflow:hidden;background:var(--green-100);font-size:22px;flex:0 0 auto}
+    .duck-avatar .duck-fallback{position:absolute;inset:0;display:grid;place-items:center}
+    .duck-avatar img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:transparent}
+    .budget-copy{min-width:0}
+    .budget-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+    .budget-top strong{font-size:14px}
+    .budget-top span{font-size:12px;color:var(--muted);white-space:nowrap}
+    .progress{height:8px;background:#edf1ed;border-radius:999px;overflow:hidden;margin-top:7px}
+    .progress > span{display:block;height:100%;border-radius:inherit;background:var(--green-600);width:0;transition:width .2s ease}
+    .progress.over > span{background:var(--danger)}
+    .budget-left{font-size:12px;font-weight:800;color:var(--green-800);white-space:nowrap}
+    .budget-left.over{color:var(--danger)}
+    .list{display:grid;gap:8px}
+    .list-item{display:flex;align-items:center;gap:11px;padding:11px;border:1px solid var(--line);border-radius:16px;background:white;min-width:0}
+    .item-copy{min-width:0;flex:1}
+    .item-copy strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-copy span{display:block;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .amount{font-weight:900;font-size:14px;white-space:nowrap}
+    .amount.income{color:var(--green-700)}
+    .mini-action{border:0;background:var(--green-100);color:var(--green-800);font-weight:800;font-size:12px;border-radius:10px;padding:8px 10px;min-height:34px}
+    .mini-action.danger{background:var(--danger-soft);color:var(--danger)}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .metric{border:1px solid var(--line);border-radius:17px;padding:13px;background:white}
+    .metric span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+    .metric strong{display:block;margin-top:5px;font-size:20px;letter-spacing:-.02em}
+    .page-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 2px 14px}
+    .page-title h2{margin:0;font-size:24px;letter-spacing:-.03em}
+    .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:var(--green-100);color:var(--green-800);font-size:11px;font-weight:800;padding:6px 9px}
+    .pill.overdue{background:var(--danger-soft);color:var(--danger)}
+    .pill.paid{background:#e4f4e8;color:#39724a}
+    .plan-name{font-size:20px;font-weight:900;margin:3px 0 2px}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .planner-alloc{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+    .alloc{border-radius:16px;padding:12px;border:1px solid var(--line);background:white}
+    .alloc strong{display:block;font-size:13px}
+    .alloc span{display:block;font-size:18px;font-weight:900;margin-top:4px}
+    .goal-card{padding:14px;border:1px solid var(--line);border-radius:18px;background:white}
+    .goal-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .goal-top strong{font-size:15px}
+    .goal-top .amount{font-size:13px}
+    .goal-actions{display:flex;gap:8px;margin-top:10px}
+    .goal-actions button{flex:1}
+    .fab{position:fixed;right:max(18px,calc((100vw - 520px)/2 + 18px));bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:20px;border:0;background:var(--green-800);color:white;font-size:30px;line-height:1;box-shadow:0 10px 26px rgba(49,87,67,.28);z-index:25}
+    .bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,520px);z-index:20;background:rgba(255,254,249,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+    .nav-btn{border:0;background:transparent;color:var(--muted);min-height:55px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:800}
+    .nav-btn .nav-icon{font-size:20px;line-height:1}
+    .nav-btn.active{background:var(--green-100);color:var(--green-900)}
+    .sheet-backdrop{position:fixed;inset:0;background:rgba(25,38,30,.34);z-index:60;display:none;align-items:flex-end;justify-content:center;padding-top:32px}
+    .sheet-backdrop.open{display:flex}
+    .sheet{width:min(100%,520px);max-height:92dvh;overflow:auto;background:var(--paper);border-radius:26px 26px 0 0;padding:14px 16px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px rgba(24,45,31,.18)}
+    .sheet-handle{width:46px;height:5px;border-radius:999px;background:#d9ded9;margin:0 auto 12px}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+    .sheet-head h2{font-size:20px;margin:0}
+    .close-btn{border:0;background:var(--green-100);width:40px;height:40px;border-radius:13px;font-size:18px;color:var(--green-900)}
+    .form-grid{display:grid;gap:13px}
+    .field label{display:block;font-size:12px;font-weight:900;margin:0 0 6px;color:var(--green-900)}
+    .field input,.field select,.field textarea{width:100%;border:1px solid #dce5de;background:white;border-radius:13px;padding:12px 12px;color:var(--ink);min-height:46px;font-size:16px}
+    .field textarea{min-height:82px;resize:vertical}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .help{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}
+    .segmented{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:var(--green-100);border-radius:14px;padding:4px}
+    .segmented button{border:0;background:transparent;color:var(--green-800);padding:9px 5px;border-radius:11px;font-size:11px;font-weight:900;min-height:42px}
+    .segmented button.active{background:white;box-shadow:0 3px 10px rgba(49,87,67,.08);color:var(--ink)}
+    .category-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .cat-choice{border:1px solid var(--line);background:white;border-radius:14px;padding:8px 5px;min-height:76px;font-size:10px;font-weight:800;color:var(--ink)}
+    .cat-choice .duck-avatar{width:38px;height:38px;margin:0 auto 4px;border-radius:12px}
+    .cat-choice.selected{border:2px solid var(--green-600);background:var(--green-100)}
+    .notice{border-radius:15px;padding:11px 12px;font-size:12px;line-height:1.45;background:var(--green-100);color:var(--green-900)}
+    .notice.warn{background:var(--warning-soft);color:#765518}
+    .notice.danger{background:var(--danger-soft);color:#863843}
+    .divider{height:1px;background:var(--line);margin:16px 0}
+    .settings-section h3{font-size:15px;margin:0 0 9px}
+    .settings-section + .settings-section{margin-top:20px}
+    .hidden{display:none!important}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(146px + env(safe-area-inset-bottom));z-index:100;background:#2f4537;color:white;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s}
+    .toast.show{opacity:1}
+    @media(min-width:700px){
+      body{padding:18px 0}.app{border-radius:28px;background:#f5faf6;box-shadow:0 18px 60px rgba(45,74,57,.12);min-height:calc(100dvh - 36px)}
+      .bottom-nav{bottom:18px;border:1px solid var(--line);border-radius:20px;width:500px;padding:7px}
+      .fab{bottom:98px}
+      .sheet{border-radius:26px;margin-bottom:18px;max-height:88dvh}
+      .sheet-backdrop{align-items:flex-end}
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><img src="budgeticon.png" alt="" onerror="this.remove();this.parentElement.textContent='🦆'" /></div>
+        <div>
+          <h1>Duck Budget</h1>
+          <p id="todayLabel">Your cozy paycheck planner</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Open settings">⚙️</button>
+    </header>
+
+    <section class="page active" id="page-home" data-page="home"></section>
+    <section class="page" id="page-transactions" data-page="transactions"></section>
+    <section class="page" id="page-bills" data-page="bills"></section>
+    <section class="page" id="page-planner" data-page="planner"></section>
+    <section class="page" id="page-goals" data-page="goals"></section>
+  </main>
+
+  <button class="fab" id="quickAddBtn" type="button" aria-label="Add transaction">+</button>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-btn active" data-tab="home" type="button"><span class="nav-icon">🏠</span><span>Home</span></button>
+    <button class="nav-btn" data-tab="transactions" type="button"><span class="nav-icon">🧾</span><span>Transactions</span></button>
+    <button class="nav-btn" data-tab="bills" type="button"><span class="nav-icon">🍋</span><span>Bills</span></button>
+    <button class="nav-btn" data-tab="planner" type="button"><span class="nav-icon">📋</span><span>Planner</span></button>
+    <button class="nav-btn" data-tab="goals" type="button"><span class="nav-icon">😇</span><span>Goals</span></button>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true">
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="sheetTitle">Add</h2>
+        <button class="close-btn" id="closeSheetBtn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="sheetContent"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'duckBudget_v1';
+  const CATEGORIES = {
+    income:   { label:'Income',   emoji:'🎩', asset:'images/gentleman-duck.png', color:'var(--income)' },
+    bills:    { label:'Bills',    emoji:'🍋', asset:'images/lemon-duck.png',     color:'var(--bills)' },
+    food:     { label:'Food',     emoji:'🍔', asset:'images/burger-duck.png',    color:'var(--food)' },
+    fun:      { label:'Fun',      emoji:'🎉', asset:'images/party-duck.png',     color:'var(--fun)' },
+    shopping: { label:'Shopping / Other', emoji:'🐥', asset:'images/tiny-ducks.png', color:'var(--shopping)' },
+    savings:  { label:'Savings',  emoji:'😇', asset:'images/angel-duck.png',     color:'var(--savings)' },
+    debt:     { label:'Debt',     emoji:'😈', asset:'images/devil-duck.png',     color:'var(--debt)' }
+  };
+  const BUDGET_CATEGORIES = ['bills','food','fun','shopping','savings','debt'];
+  const FLEX_CATEGORIES = ['food','fun','shopping'];
+  const FIXED_CATEGORIES = ['bills','savings','debt'];
+
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+  const todayISO = () => {
+    const d = new Date();
+    return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+  };
+  const parseDate = (s) => {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))) return null;
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y,m-1,d,12,0,0,0);
+  };
+  const toISO = (d) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+  const formatDate = (s, opts={month:'short',day:'numeric'}) => {
+    const d=parseDate(s); return d ? new Intl.DateTimeFormat(undefined,opts).format(d) : '—';
+  };
+  const daysBetween = (a,b) => {
+    const da=parseDate(a), db=parseDate(b); if(!da||!db) return null;
+    return Math.ceil((db-da)/86400000);
+  };
+  const money = (n) => {
+    const value=Number(n)||0;
+    return new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+  };
+  const num = (v) => Math.max(0, Number.parseFloat(v)||0);
+  const escapeHtml = (v='') => String(v).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+
+  const defaultState = () => ({ version:1, plans:[], transactions:[], bills:[], goals:[], debts:[] });
+  let state = loadState();
+  let currentTab = 'home';
+  let toastTimer = null;
+
+  function loadState(){
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed=JSON.parse(raw);
+      return normalizeState(parsed);
+    }catch(err){ return defaultState(); }
+  }
+  function normalizeState(data){
+    const base=defaultState();
+    if(!data || typeof data!=='object') return base;
+    for(const key of ['plans','transactions','bills','goals','debts']) base[key]=Array.isArray(data[key])?data[key]:[];
+    return base;
+  }
+  function saveState(message){
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+      if(message) showToast(message);
+    }catch(err){
+      showToast('Could not save on this device. Try exporting a backup.');
+    }
+    renderAll();
+  }
+  function showToast(text){
+    const t=$('#toast'); t.textContent=text; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  function currentPlan(){
+    return state.plans.find(p=>p.active) || state.plans.slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))[0] || null;
+  }
+  function planTransactions(planId){ return state.transactions.filter(t=>t.planId===planId); }
+  function categorySpent(plan, category){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.category===category && t.type!=='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function planExtraIncome(plan){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.type==='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function totalOutgoing(plan){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.type!=='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function safeToSpend(plan){
+    if(!plan) return 0;
+    const available=num(plan.income)+planExtraIncome(plan);
+    const spent=totalOutgoing(plan);
+    const fixedRemaining=FIXED_CATEGORIES.reduce((sum,c)=>{
+      const planned=num(plan.budgets?.[c]);
+      const used=categorySpent(plan,c);
+      return sum+Math.max(0,planned-used);
+    },0);
+    return available-spent-fixedRemaining;
+  }
+  function remainingInPlan(plan){ return plan ? num(plan.income)+planExtraIncome(plan)-totalOutgoing(plan) : 0; }
+  function unassigned(plan){ return plan ? num(plan.income)-BUDGET_CATEGORIES.reduce((s,c)=>s+num(plan.budgets?.[c]),0) : 0; }
+
+  function duck(category, cls=''){
+    const c=CATEGORIES[category]||CATEGORIES.shopping;
+    return `<span class="duck-avatar ${cls}" style="background:${c.color}"><span class="duck-fallback">${c.emoji}</span><img src="${c.asset}" alt="" onerror="this.hidden=true"></span>`;
+  }
+
+  function billOccurrencesBetween(bill,startISO,endISO){
+    const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end) return [];
+    const out=[]; let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
+    const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
+    while(cursor<=endMonth && out.length<24){
+      const maxDay=new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate();
+      const d=new Date(cursor.getFullYear(),cursor.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
+      if(d>=start && d<end) out.push(toISO(d));
+      cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+    }
+    return out;
+  }
+  function suggestedBills(plan){
+    if(!plan) return {total:0,items:[]};
+    const items=[];
+    state.bills.forEach(b=>billOccurrencesBetween(b,plan.startDate,plan.nextPayDate).forEach(date=>items.push({bill:b,date})));
+    return { total:items.reduce((s,x)=>s+num(x.bill.amount),0), items:items.sort((a,b)=>a.date.localeCompare(b.date)) };
+  }
+  function isBillOccurrencePaid(billId,dueISO){
+    const due=parseDate(dueISO); if(!due) return false;
+    return state.transactions.some(t=>t.billId===billId && t.type==='expense' && (()=>{ const td=parseDate(t.date); return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth(); })());
+  }
+  function nextBillOccurrence(bill){
+    const today=parseDate(todayISO());
+    for(let add=0; add<14; add++){
+      const monthDate=new Date(today.getFullYear(),today.getMonth()+add,1,12);
+      const maxDay=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,0).getDate();
+      const due=new Date(monthDate.getFullYear(),monthDate.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
+      const dueISO=toISO(due);
+      if(add===0 && due<today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
+      if(due>=today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
+    }
+    return null;
+  }
+  function upcomingBills(limit=99){
+    return state.bills.map(b=>({bill:b,date:nextBillOccurrence(b)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,limit);
+  }
+
+  function goalSaved(goal){
+    return num(goal.startingSaved)+state.transactions.filter(t=>t.type==='savings'&&t.goalId===goal.id).reduce((s,t)=>s+num(t.amount),0);
+  }
+  function debtRemaining(debt){
+    const paid=state.transactions.filter(t=>t.type==='debt'&&t.debtId===debt.id).reduce((s,t)=>s+num(t.amount),0);
+    return Math.max(0,num(debt.startingBalance)-paid);
+  }
+
+  function renderAll(){
+    $('#todayLabel').textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'numeric'}).format(new Date());
+    renderHome(); renderTransactions(); renderBills(); renderPlanner(); renderGoals();
+  }
+
+  function renderHome(){
+    const root=$('#page-home');
+    const plan=currentPlan();
+    if(!plan){
+      root.innerHTML=`
+        <div class="card hero">
+          <div class="eyebrow">Safe to spend</div>
+          <div class="hero-value">$0.00</div>
+          <div class="hero-sub">Create a paycheck plan to get started.</div>
+        </div>
+        <div class="card empty"><div class="big">📋</div><strong>Let’s plan your first paycheck</strong><div class="small">Add your paycheck amount, next payday, and the amounts you want to reserve for each duck category.</div><div style="margin-top:14px"><button class="btn primary" id="homeCreatePlan" type="button">Create paycheck plan</button></div></div>`;
+      $('#homeCreatePlan')?.addEventListener('click',()=>openPlanForm());
+      return;
+    }
+    const days=daysBetween(todayISO(),plan.nextPayDate);
+    const safe=safeToSpend(plan);
+    const remaining=remainingInPlan(plan);
+    const bills=upcomingBills(3);
+    const goals=state.goals.slice(0,2);
+    const recent=state.transactions.slice().sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id)).slice(0,4);
+    const totalDebt=state.debts.reduce((s,d)=>s+debtRemaining(d),0);
+    const budgetsHtml=BUDGET_CATEGORIES.map(c=>{
+      const planned=num(plan.budgets?.[c]), spent=categorySpent(plan,c), left=planned-spent;
+      const pct=planned>0?Math.min(100,(spent/planned)*100):(spent>0?100:0);
+      const over=spent>planned && planned>=0;
+      return `<div class="budget-row">${duck(c)}<div class="budget-copy"><div class="budget-top"><strong>${CATEGORIES[c].label}</strong><span>${money(spent)} / ${money(planned)}</span></div><div class="progress ${over?'over':''}"><span style="width:${pct}%;background:${CATEGORIES[c].color}"></span></div></div><div class="budget-left ${left<0?'over':''}">${left>=0?money(left)+' left':money(Math.abs(left))+' over'}</div></div>`;
+    }).join('');
+    root.innerHTML=`
+      <div class="card hero">
+        <div class="eyebrow">Safe to spend</div>
+        <div class="hero-value">${money(safe)}</div>
+        <div class="hero-sub">${days===null?'Current paycheck plan':days<0?'Next payday has passed':days===0?'Payday is today!':`${days} day${days===1?'':'s'} until ${formatDate(plan.nextPayDate)}`}</div>
+        <div class="hero-grid">
+          <div class="hero-stat"><small>Paycheck</small><strong>${money(plan.income)}</strong></div>
+          <div class="hero-stat"><small>Plan remaining</small><strong>${money(remaining)}</strong></div>
+        </div>
+      </div>
+      <div class="section-head"><h2>This paycheck</h2><button type="button" data-go="planner">Edit plan</button></div>
+      <div class="card"><div class="budget-list">${budgetsHtml}</div></div>
+      <div class="section-head"><h2>Upcoming bills</h2><button type="button" data-go="bills">See all</button></div>
+      <div class="card">${bills.length?`<div class="list">${bills.map(({bill,date})=>billRow(bill,date,true)).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills added yet</strong><div class="small">Add recurring bills and I’ll help match them to each paycheck.</div></div>`}</div>
+      <div class="section-head"><h2>Goals</h2><button type="button" data-go="goals">See all</button></div>
+      <div class="card">${goals.length?goals.map(goalMini).join(''):`<div class="empty"><div class="big">😇</div><strong>No savings goals yet</strong><div class="small">Create a goal and savings transactions can fill it automatically.</div></div>`}</div>
+      ${state.debts.length?`<div class="section-head"><h2>Debt snapshot</h2><button type="button" id="manageDebtHome">Manage</button></div><div class="card"><div class="two-col"><div class="metric"><span>Total remaining</span><strong>${money(totalDebt)}</strong></div><div class="metric"><span>This paycheck</span><strong>${money(categorySpent(plan,'debt'))}</strong></div></div></div>`:''}
+      <div class="section-head"><h2>Recent activity</h2><button type="button" data-go="transactions">See all</button></div>
+      <div class="card">${recent.length?`<div class="list">${recent.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big">🪙</div><strong>No transactions yet</strong><div class="small">Tap + to add your first one.</div></div>`}</div>`;
+    $$('[data-go]',root).forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
+    $('#manageDebtHome')?.addEventListener('click',()=>openSettings('debt'));
+    $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
+  }
+
+  function renderTransactions(){
+    const root=$('#page-transactions');
+    const plan=currentPlan();
+    const tx=state.transactions.slice().sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id));
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Transactions</h2><div class="small muted">Everything you’ve logged</div></div><button class="btn primary" id="addTxTop" type="button">+ Add</button></div>
+      ${plan?`<div class="card"><div class="two-col"><div class="metric"><span>Current plan spent</span><strong>${money(totalOutgoing(plan))}</strong></div><div class="metric"><span>Extra income</span><strong>${money(planExtraIncome(plan))}</strong></div></div></div>`:''}
+      <div class="card">${tx.length?`<div class="list">${tx.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big">🧾</div><strong>Nothing here yet</strong><div class="small">Add purchases, savings, debt payments, or extra income.</div></div>`}</div>`;
+    $('#addTxTop')?.addEventListener('click',()=>openTransactionForm());
+    $$('.tx-edit',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(b.dataset.id)));
+  }
+
+  function transactionRow(t){
+    const cat=CATEGORIES[t.category]||CATEGORIES.shopping;
+    const sign=t.type==='income'?'+':'−';
+    const linked=t.goalId?state.goals.find(g=>g.id===t.goalId)?.name:t.debtId?state.debts.find(d=>d.id===t.debtId)?.name:t.billId?state.bills.find(b=>b.id===t.billId)?.name:'';
+    const note=escapeHtml(t.note||linked||cat.label);
+    return `<div class="list-item">${duck(t.category)}<div class="item-copy"><strong>${note}</strong><span>${cat.label} • ${formatDate(t.date)}</span></div><div class="amount ${t.type==='income'?'income':''}">${sign}${money(t.amount)}</div><button class="mini-action tx-edit" data-id="${t.id}" type="button" aria-label="Edit transaction">Edit</button></div>`;
+  }
+
+  function renderBills(){
+    const root=$('#page-bills');
+    const rows=upcomingBills(99);
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Bills</h2><div class="small muted">Recurring monthly expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>
+      <div class="card notice">🍋 Bills are matched to the paycheck that comes before their due date. The Planner can suggest how much to reserve automatically.</div>
+      <div class="card">${rows.length?`<div class="list">${rows.map(({bill,date})=>billRow(bill,date,false)).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills yet</strong><div class="small">Add rent, phone, subscriptions, insurance, and other regular bills.</div></div>`}</div>`;
+    $('#addBillBtn')?.addEventListener('click',()=>openBillForm());
+    $$('.bill-edit',root).forEach(b=>b.addEventListener('click',()=>openBillForm(b.dataset.id)));
+    $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
+  }
+
+  function billRow(bill,date,compact){
+    const due=parseDate(date), now=parseDate(todayISO());
+    const overdue=due<now;
+    const paid=isBillOccurrencePaid(bill.id,date);
+    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
+  }
+
+  function renderPlanner(){
+    const root=$('#page-planner');
+    const plan=currentPlan();
+    if(!plan){
+      root.innerHTML=`<div class="page-title"><div><h2>Paycheck Planner</h2><div class="small muted">Give every dollar a job</div></div></div><div class="card empty"><div class="big">📋</div><strong>No paycheck plan yet</strong><div class="small">Create one to set category limits and see your safe-to-spend amount.</div><div style="margin-top:14px"><button class="btn primary" id="plannerCreate" type="button">Create plan</button></div></div>`;
+      $('#plannerCreate')?.addEventListener('click',()=>openPlanForm());
+      return;
+    }
+    const sug=suggestedBills(plan), ua=unassigned(plan);
+    const alloc=BUDGET_CATEGORIES.map(c=>`<div class="alloc"><strong>${CATEGORIES[c].emoji} ${CATEGORIES[c].label}</strong><span>${money(plan.budgets?.[c])}</span><div class="small muted">${money(categorySpent(plan,c))} used</div></div>`).join('');
+    const history=state.plans.filter(p=>p.id!==plan.id).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate))).slice(0,5);
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Paycheck Planner</h2><div class="small muted">Give every dollar a job</div></div><button class="btn primary" id="newPlanBtn" type="button">New plan</button></div>
+      <div class="card">
+        <div class="eyebrow" style="color:var(--green-700)">Current paycheck</div>
+        <div class="plan-name">${escapeHtml(plan.name||'Paycheck Plan')}</div>
+        <div class="small muted">${formatDate(plan.startDate)} → ${formatDate(plan.nextPayDate)} • ${money(plan.income)}</div>
+        <div class="planner-alloc">${alloc}</div>
+        <div class="divider"></div>
+        <div class="two-col"><div class="metric"><span>Unassigned</span><strong style="color:${ua<0?'var(--danger)':'inherit'}">${money(ua)}</strong></div><div class="metric"><span>Safe to spend</span><strong>${money(safeToSpend(plan))}</strong></div></div>
+        <div class="btn-row" style="margin-top:12px"><button class="btn soft" id="editPlanBtn" type="button">Edit plan</button><button class="btn soft" id="activateBillSuggestion" type="button">Use suggested bills</button></div>
+      </div>
+      <div class="section-head"><h2>Bill suggestion</h2></div>
+      <div class="card">${sug.items.length?`<div class="notice">🍋 Bills due before your next payday total <strong>${money(sug.total)}</strong>.</div><div class="list" style="margin-top:10px">${sug.items.map(x=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(x.bill.name)}</strong><span>${formatDate(x.date)}</span></div><div class="amount">${money(x.bill.amount)}</div></div>`).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills due in this paycheck window</strong><div class="small">Add bills on the Bills tab and I’ll suggest them here.</div></div>`}</div>
+      ${history.length?`<div class="section-head"><h2>Past plans</h2></div><div class="card"><div class="list">${history.map(p=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(p.name||'Paycheck Plan')}</strong><span>${formatDate(p.startDate)} → ${formatDate(p.nextPayDate)}</span></div><div class="amount">${money(p.income)}</div><button class="mini-action activate-plan" data-id="${p.id}" type="button">Make current</button></div>`).join('')}</div></div>`:''}`;
+    $('#newPlanBtn')?.addEventListener('click',()=>openPlanForm(null,true));
+    $('#editPlanBtn')?.addEventListener('click',()=>openPlanForm(plan.id));
+    $('#activateBillSuggestion')?.addEventListener('click',()=>{
+      plan.budgets=plan.budgets||{}; plan.budgets.bills=sug.total; saveState('Bills budget updated');
+    });
+    $$('.activate-plan',root).forEach(b=>b.addEventListener('click',()=>{
+      state.plans.forEach(p=>p.active=p.id===b.dataset.id); saveState('Current plan changed');
+    }));
+  }
+
+  function renderGoals(){
+    const root=$('#page-goals');
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Goals</h2><div class="small muted">Save toward something good</div></div><button class="btn primary" id="addGoalBtn" type="button">+ Goal</button></div>
+      <div class="card">${state.goals.length?`<div class="list">${state.goals.map(goalFull).join('')}</div>`:`<div class="empty"><div class="big">😇</div><strong>No goals yet</strong><div class="small">Emergency fund, a trip, a purchase—anything you want to build toward.</div></div>`}</div>`;
+    $('#addGoalBtn')?.addEventListener('click',()=>openGoalForm());
+    $$('.goal-edit',root).forEach(b=>b.addEventListener('click',()=>openGoalForm(b.dataset.id)));
+    $$('.goal-add',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'savings',goalId:b.dataset.id})));
+  }
+  function goalMini(goal){
+    const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
+    return `<div class="goal-card" style="margin-bottom:9px"><div class="goal-top"><strong>${escapeHtml(goal.name)}</strong><div class="amount">${money(saved)} / ${money(target)}</div></div><div class="progress"><span style="width:${pct}%;background:var(--savings)"></span></div></div>`;
+  }
+  function goalFull(goal){
+    const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
+    return `<div class="goal-card"><div class="goal-top"><div><strong>${escapeHtml(goal.name)}</strong><div class="small muted">${pct.toFixed(0)}% complete</div></div><div class="amount">${money(saved)} / ${money(target)}</div></div><div class="progress"><span style="width:${pct}%;background:var(--savings)"></span></div><div class="goal-actions"><button class="mini-action goal-add" data-id="${goal.id}" type="button">+ Add savings</button><button class="mini-action goal-edit" data-id="${goal.id}" type="button">Edit</button></div></div>`;
+  }
+
+  function setTab(tab){
+    currentTab=tab;
+    $$('.page').forEach(p=>p.classList.toggle('active',p.dataset.page===tab));
+    $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function openSheet(title,html){
+    $('#sheetTitle').textContent=title; $('#sheetContent').innerHTML=html;
+    $('#sheetBackdrop').classList.add('open'); $('#sheetBackdrop').setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  }
+  function closeSheet(){
+    $('#sheetBackdrop').classList.remove('open'); $('#sheetBackdrop').setAttribute('aria-hidden','true');
+    document.body.style.overflow=''; $('#sheetContent').innerHTML='';
+  }
+
+  function openTransactionForm(id=null,preset={}){
+    const existing=id?state.transactions.find(t=>t.id===id):null;
+    const plan=currentPlan();
+    let type=existing?.type||preset.type||'expense';
+    let category=existing?.category||preset.category||(type==='expense'?'food':type==='income'?'income':type);
+    const plans=state.plans.slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)));
+    openSheet(existing?'Edit Transaction':'Add Transaction',`
+      <form id="txForm" class="form-grid">
+        <div class="field"><label>Type</label><div class="segmented" id="txTypePicker">
+          ${['expense','income','savings','debt'].map(t=>`<button type="button" data-type="${t}" class="${type===t?'active':''}">${t==='expense'?'Expense':t==='income'?'Income':t==='savings'?'Savings':'Debt'}</button>`).join('')}
+        </div></div>
+        <div class="field"><label for="txAmount">Amount</label><input id="txAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${existing?escapeHtml(existing.amount):''}" placeholder="0.00"></div>
+        <div class="field" id="categoryField"><label>Category duck</label><div class="category-picker" id="categoryPicker">${['food','fun','bills','shopping'].map(c=>`<button type="button" class="cat-choice ${category===c?'selected':''}" data-category="${c}">${duck(c)}<span>${CATEGORIES[c].label}</span></button>`).join('')}</div></div>
+        <div class="field hidden" id="goalField"><label for="txGoal">Savings goal</label><select id="txGoal"><option value="">No specific goal</option>${state.goals.map(g=>`<option value="${g.id}" ${(existing?.goalId||preset.goalId)===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}</select></div>
+        <div class="field hidden" id="debtField"><label for="txDebt">Debt</label><select id="txDebt"><option value="">Choose debt</option>${state.debts.map(d=>`<option value="${d.id}" ${(existing?.debtId||preset.debtId)===d.id?'selected':''}>${escapeHtml(d.name)}</option>`).join('')}</select>${state.debts.length?'':'<div class="help">Add a debt from Settings first.</div>'}</div>
+        <div class="field hidden" id="billField"><label for="txBill">Bill</label><select id="txBill"><option value="">General bill / no link</option>${state.bills.map(b=>`<option value="${b.id}" ${existing?.billId===b.id?'selected':''}>${escapeHtml(b.name)}</option>`).join('')}</select></div>
+        <div class="field"><label for="txNote">What was it?</label><input id="txNote" maxlength="80" value="${escapeHtml(existing?.note||'')}" placeholder="Lunch, Target, refund…"></div>
+        <div class="field-row"><div class="field"><label for="txDate">Date</label><input id="txDate" type="date" required value="${escapeHtml(existing?.date||todayISO())}"></div><div class="field"><label for="txPlan">Paycheck plan</label><select id="txPlan"><option value="">No plan</option>${plans.map(p=>`<option value="${p.id}" ${(existing?.planId||plan?.id)===p.id?'selected':''}>${escapeHtml(p.name||formatDate(p.startDate))}</option>`).join('')}</select></div></div>
+        <button class="btn primary full" type="submit">${existing?'Save changes':'Add transaction'}</button>
+        ${existing?'<button class="btn danger full" id="deleteTxBtn" type="button">Delete transaction</button>':''}
+      </form>`);
+    const setType=(newType)=>{
+      type=newType;
+      $$('#txTypePicker button').forEach(b=>b.classList.toggle('active',b.dataset.type===type));
+      $('#categoryField').classList.toggle('hidden',type!=='expense');
+      $('#goalField').classList.toggle('hidden',type!=='savings');
+      $('#debtField').classList.toggle('hidden',type!=='debt');
+      if(type==='income') category='income';
+      if(type==='savings') category='savings';
+      if(type==='debt') category='debt';
+      $('#billField').classList.toggle('hidden',!(type==='expense'&&category==='bills'));
+    };
+    $$('#txTypePicker button').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+    $$('#categoryPicker .cat-choice').forEach(b=>b.addEventListener('click',()=>{
+      category=b.dataset.category; $$('#categoryPicker .cat-choice').forEach(x=>x.classList.toggle('selected',x===b));
+      $('#billField').classList.toggle('hidden',category!=='bills'||type!=='expense');
+    }));
+    setType(type);
+    $('#txForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const amount=num($('#txAmount').value); if(amount<=0){showToast('Enter an amount greater than $0');return;}
+      if(type==='debt' && !$('#txDebt').value){showToast('Choose which debt this payment is for');return;}
+      const record={
+        id:existing?.id||uid(), type, category, amount,
+        note:$('#txNote').value.trim(), date:$('#txDate').value||todayISO(), planId:$('#txPlan').value||'',
+        goalId:type==='savings'?$('#txGoal').value:'', debtId:type==='debt'?$('#txDebt').value:'',
+        billId:(type==='expense'&&category==='bills')?$('#txBill').value:''
+      };
+      if(existing) state.transactions=state.transactions.map(t=>t.id===existing.id?record:t); else state.transactions.push(record);
+      closeSheet(); saveState(existing?'Transaction updated':'Transaction added');
+    });
+    $('#deleteTxBtn')?.addEventListener('click',()=>{
+      if(confirm('Delete this transaction?')){state.transactions=state.transactions.filter(t=>t.id!==existing.id);closeSheet();saveState('Transaction deleted');}
+    });
+  }
+
+  function openBillForm(id=null){
+    const b=id?state.bills.find(x=>x.id===id):null;
+    openSheet(b?'Edit Bill':'Add Bill',`
+      <form id="billForm" class="form-grid">
+        <div class="field"><label for="billName">Bill name</label><input id="billName" maxlength="60" required value="${escapeHtml(b?.name||'')}" placeholder="Rent, phone, Netflix…"></div>
+        <div class="field-row"><div class="field"><label for="billAmount">Amount</label><input id="billAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${b?escapeHtml(b.amount):''}" placeholder="0.00"></div><div class="field"><label for="billDay">Due day</label><input id="billDay" inputmode="numeric" type="number" min="1" max="31" required value="${b?escapeHtml(b.dueDay):''}" placeholder="15"></div></div>
+        <label class="notice" style="display:flex;gap:9px;align-items:center"><input id="billAutopay" type="checkbox" ${b?.autopay?'checked':''}> <span><strong>Autopay</strong><br><span class="small">Just a label—this app never connects to your bank.</span></span></label>
+        <button class="btn primary full" type="submit">${b?'Save bill':'Add bill'}</button>
+        ${b?'<button class="btn danger full" id="deleteBillBtn" type="button">Delete bill</button>':''}
+      </form>`);
+    $('#billForm').addEventListener('submit',e=>{
+      e.preventDefault(); const amount=num($('#billAmount').value), dueDay=Math.min(31,Math.max(1,parseInt($('#billDay').value,10)||1));
+      if(amount<=0){showToast('Enter a bill amount');return;}
+      const rec={id:b?.id||uid(),name:$('#billName').value.trim(),amount,dueDay,autopay:$('#billAutopay').checked};
+      if(b) state.bills=state.bills.map(x=>x.id===b.id?rec:x); else state.bills.push(rec);
+      closeSheet(); saveState(b?'Bill updated':'Bill added');
+    });
+    $('#deleteBillBtn')?.addEventListener('click',()=>{if(confirm('Delete this bill? Existing transactions will stay.')){state.bills=state.bills.filter(x=>x.id!==b.id);closeSheet();saveState('Bill deleted');}});
+  }
+
+  function markBillPaid(billId,dueDate){
+    const b=state.bills.find(x=>x.id===billId); if(!b) return;
+    if(isBillOccurrencePaid(billId,dueDate)){showToast('That bill is already marked paid');return;}
+    const plan=currentPlan();
+    state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id});
+    saveState(`${b.name} marked paid`);
+  }
+
+  function openPlanForm(id=null,forceNew=false){
+    const p=(!forceNew&&id)?state.plans.find(x=>x.id===id):null;
+    const start=p?.startDate||todayISO();
+    const next=p?.nextPayDate||'';
+    openSheet(p?'Edit Paycheck Plan':'New Paycheck Plan',`
+      <form id="planForm" class="form-grid">
+        <div class="field"><label for="planName">Plan name</label><input id="planName" maxlength="60" value="${escapeHtml(p?.name||'')}" placeholder="Aug 31 Paycheck"></div>
+        <div class="field"><label for="planIncome">Paycheck amount</label><input id="planIncome" inputmode="decimal" type="number" min="0" step="0.01" required value="${p?escapeHtml(p.income):''}" placeholder="0.00"><div class="help">Put your main paycheck here. Use an Income transaction later for refunds or extra money.</div></div>
+        <div class="field-row"><div class="field"><label for="planStart">Pay date</label><input id="planStart" type="date" required value="${start}"></div><div class="field"><label for="planNext">Next payday</label><input id="planNext" type="date" required value="${next}"></div></div>
+        <div class="divider"></div>
+        ${BUDGET_CATEGORIES.map(c=>`<div class="field"><label for="budget_${c}">${CATEGORIES[c].emoji} ${CATEGORIES[c].label}</label><input id="budget_${c}" inputmode="decimal" type="number" min="0" step="0.01" value="${p?escapeHtml(p.budgets?.[c]||0):'0'}"></div>`).join('')}
+        <div class="notice" id="planMath">Enter your paycheck and category amounts to see what’s unassigned.</div>
+        <button class="btn primary full" type="submit">${p?'Save plan':'Start this paycheck plan'}</button>
+        ${p?'<button class="btn danger full" id="deletePlanBtn" type="button">Delete plan</button>':''}
+      </form>`);
+    const updateMath=()=>{
+      const income=num($('#planIncome').value); const allocated=BUDGET_CATEGORIES.reduce((s,c)=>s+num($(`#budget_${c}`).value),0); const left=income-allocated;
+      $('#planMath').innerHTML=`🪙 <strong>${money(left)}</strong> ${left>=0?'unassigned':'over-planned'} from this paycheck.`;
+      $('#planMath').classList.toggle('danger',left<0);
+    };
+    ['planIncome',...BUDGET_CATEGORIES.map(c=>'budget_'+c)].forEach(id2=>$(`#${id2}`)?.addEventListener('input',updateMath)); updateMath();
+    $('#planForm').addEventListener('submit',e=>{
+      e.preventDefault(); const income=num($('#planIncome').value), startDate=$('#planStart').value, nextPayDate=$('#planNext').value;
+      if(income<=0){showToast('Enter your paycheck amount');return;}
+      if(!startDate||!nextPayDate||parseDate(nextPayDate)<=parseDate(startDate)){showToast('Next payday must be after this payday');return;}
+      const budgets={}; BUDGET_CATEGORIES.forEach(c=>budgets[c]=num($(`#budget_${c}`).value));
+      const rec={id:p?.id||uid(),name:$('#planName').value.trim()||`${formatDate(startDate)} Paycheck`,income,startDate,nextPayDate,budgets,active:true,createdAt:p?.createdAt||Date.now()};
+      state.plans.forEach(x=>x.active=false);
+      if(p) state.plans=state.plans.map(x=>x.id===p.id?rec:x); else state.plans.push(rec);
+      closeSheet(); setTab('planner'); saveState(p?'Plan updated':'Paycheck plan started');
+    });
+    $('#deletePlanBtn')?.addEventListener('click',()=>{if(confirm('Delete this paycheck plan? Transactions will stay in your history.')){state.plans=state.plans.filter(x=>x.id!==p.id); if(state.plans.length&&!state.plans.some(x=>x.active)) state.plans[state.plans.length-1].active=true;closeSheet();saveState('Plan deleted');}});
+  }
+
+  function openGoalForm(id=null){
+    const g=id?state.goals.find(x=>x.id===id):null;
+    openSheet(g?'Edit Goal':'New Savings Goal',`
+      <form id="goalForm" class="form-grid">
+        <div class="field"><label for="goalName">Goal name</label><input id="goalName" required maxlength="60" value="${escapeHtml(g?.name||'')}" placeholder="Emergency fund, trip…"></div>
+        <div class="field-row"><div class="field"><label for="goalTarget">Target</label><input id="goalTarget" type="number" inputmode="decimal" min="0" step="0.01" required value="${g?escapeHtml(g.target):''}" placeholder="1000"></div><div class="field"><label for="goalStart">Already saved</label><input id="goalStart" type="number" inputmode="decimal" min="0" step="0.01" value="${g?escapeHtml(g.startingSaved||0):'0'}"></div></div>
+        <button class="btn primary full" type="submit">${g?'Save goal':'Create goal'}</button>
+        ${g?'<button class="btn danger full" id="deleteGoalBtn" type="button">Delete goal</button>':''}
+      </form>`);
+    $('#goalForm').addEventListener('submit',e=>{e.preventDefault(); const target=num($('#goalTarget').value);if(target<=0){showToast('Enter a goal amount');return;}const rec={id:g?.id||uid(),name:$('#goalName').value.trim(),target,startingSaved:num($('#goalStart').value)};if(g)state.goals=state.goals.map(x=>x.id===g.id?rec:x);else state.goals.push(rec);closeSheet();saveState(g?'Goal updated':'Goal created');});
+    $('#deleteGoalBtn')?.addEventListener('click',()=>{if(confirm('Delete this goal? Savings transactions will remain in your history.')){state.goals=state.goals.filter(x=>x.id!==g.id);closeSheet();saveState('Goal deleted');}});
+  }
+
+  function openDebtForm(id=null){
+    const d=id?state.debts.find(x=>x.id===id):null;
+    openSheet(d?'Edit Debt':'Add Debt',`
+      <form id="debtForm" class="form-grid">
+        <div class="field"><label for="debtName">Nickname</label><input id="debtName" required maxlength="60" value="${escapeHtml(d?.name||'')}" placeholder="Card A, car loan…"><div class="help">Use a nickname only—never enter account or card numbers.</div></div>
+        <div class="field-row"><div class="field"><label for="debtBalance">Current balance</label><input id="debtBalance" type="number" inputmode="decimal" min="0" step="0.01" required value="${d?escapeHtml(d.startingBalance):''}" placeholder="0.00"></div><div class="field"><label for="debtMin">Minimum payment</label><input id="debtMin" type="number" inputmode="decimal" min="0" step="0.01" value="${d?escapeHtml(d.minimumPayment||0):'0'}"></div></div>
+        <div class="notice warn">Debt balances here are a personal tracker only. Interest and new charges are not added automatically, so you can edit the balance whenever you want to resync it.</div>
+        <button class="btn primary full" type="submit">${d?'Save debt':'Add debt'}</button>
+        ${d?'<button class="btn danger full" id="deleteDebtBtn" type="button">Delete debt</button>':''}
+      </form>`);
+    $('#debtForm').addEventListener('submit',e=>{e.preventDefault();const bal=num($('#debtBalance').value);const rec={id:d?.id||uid(),name:$('#debtName').value.trim(),startingBalance:bal,minimumPayment:num($('#debtMin').value)};if(d)state.debts=state.debts.map(x=>x.id===d.id?rec:x);else state.debts.push(rec);closeSheet();saveState(d?'Debt updated':'Debt added');});
+    $('#deleteDebtBtn')?.addEventListener('click',()=>{if(confirm('Delete this debt tracker? Debt payment transactions will stay.')){state.debts=state.debts.filter(x=>x.id!==d.id);closeSheet();saveState('Debt deleted');}});
+  }
+
+  function openSettings(section='top'){
+    const debtHtml=state.debts.length?state.debts.map(d=>`<div class="list-item">${duck('debt')}<div class="item-copy"><strong>${escapeHtml(d.name)}</strong><span>${money(debtRemaining(d))} remaining • Min ${money(d.minimumPayment||0)}</span></div><button class="mini-action debt-pay" data-id="${d.id}" type="button">Pay</button><button class="mini-action debt-edit" data-id="${d.id}" type="button">Edit</button></div>`).join(''):'<div class="small muted">No debts added.</div>';
+    openSheet('Settings',`
+      <div id="settingsTop"></div>
+      <div class="settings-section" id="debtSettings"><h3>😈 Debt trackers</h3><div class="list">${debtHtml}</div><button class="btn soft full" id="addDebtBtn" type="button" style="margin-top:10px">+ Add debt</button></div>
+      <div class="settings-section"><h3>💾 Backup</h3><div class="notice">Your budget stays in this browser on this device. Export a backup occasionally—especially before clearing browser data or changing the GitHub Pages URL.</div><div class="btn-row" style="margin-top:10px"><button class="btn soft" id="exportBtn" type="button">Export backup</button><label class="btn soft" style="display:grid;place-items:center;text-align:center"><input id="importInput" type="file" accept="application/json,.json" hidden>Import backup</label></div></div>
+      <div class="settings-section"><h3>🔒 Privacy</h3><div class="small muted">No bank login, card number, routing number, or account number is needed. This version has no server and sends no budget data anywhere.</div></div>
+      <div class="settings-section"><h3>Reset</h3><button class="btn danger full" id="resetBtn" type="button">Erase all budget data on this device</button></div>`);
+    $('#addDebtBtn').addEventListener('click',()=>openDebtForm());
+    $$('.debt-edit').forEach(b=>b.addEventListener('click',()=>openDebtForm(b.dataset.id)));
+    $$('.debt-pay').forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'debt',debtId:b.dataset.id})));
+    $('#exportBtn').addEventListener('click',exportBackup);
+    $('#importInput').addEventListener('change',importBackup);
+    $('#resetBtn').addEventListener('click',()=>{if(confirm('Erase ALL Duck Budget data saved in this browser? This cannot be undone unless you exported a backup.')){localStorage.removeItem(STORAGE_KEY);state=defaultState();closeSheet();setTab('home');renderAll();showToast('All local data erased');}});
+    if(section==='debt') setTimeout(()=>$('#debtSettings')?.scrollIntoView({behavior:'smooth',block:'start'}),40);
+  }
+
+  function exportBackup(){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`duck-budget-backup-${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),500); showToast('Backup exported');
+  }
+  function importBackup(e){
+    const file=e.target.files?.[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{ const parsed=JSON.parse(reader.result); const normalized=normalizeState(parsed); if(!confirm('Replace the budget data on this device with this backup?')) return; state=normalized; saveState('Backup imported'); closeSheet(); }
+      catch(err){ showToast('That file is not a valid Duck Budget backup'); }
+    };
+    reader.readAsText(file);
+  }
+
+  $('#settingsBtn').addEventListener('click',()=>openSettings());
+  $('#quickAddBtn').addEventListener('click',()=>openTransactionForm());
+  $('#closeSheetBtn').addEventListener('click',closeSheet);
+  $('#sheetBackdrop').addEventListener('click',e=>{if(e.target===$('#sheetBackdrop'))closeSheet();});
+  $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheetBackdrop').classList.contains('open'))closeSheet();});
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
