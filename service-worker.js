@@ -1,11 +1,12 @@
-const CACHE_NAME = 'duck-budget-pwa-v1';
+const CACHE_NAME = 'duck-budget-pwa-v2';
+
 const CORE_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './images/budgeticon-180.png',
-  './images/budgeticon-192.png',
-  './images/budgeticon-512.png'
+  '/duck-budget/',
+  '/duck-budget/index.html',
+  '/duck-budget/manifest.json',
+  '/duck-budget/images/budgeticon-180.png',
+  '/duck-budget/images/budgeticon-192.png',
+  '/duck-budget/images/budgeticon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -18,36 +19,38 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
-  if(request.method !== 'GET') return;
+  if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  if(url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return;
 
-  if(request.mode === 'navigate'){
+  if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then(response => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
+          caches.open(CACHE_NAME).then(cache => cache.put('/duck-budget/index.html', copy));
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => caches.match('/duck-budget/index.html'))
     );
     return;
   }
 
   event.respondWith(
     caches.match(request).then(cached => {
-      if(cached) return cached;
+      if (cached) return cached;
       return fetch(request).then(response => {
-        if(response && response.ok){
+        if (response && response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }

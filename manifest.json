@@ -1,29 +1,31 @@
 {
-  "id": "./",
+  "id": "/duck-budget/",
   "name": "Duck Budget",
   "short_name": "Duck Budget",
   "description": "A private, local-first paycheck budgeting planner.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/duck-budget/",
+  "scope": "/duck-budget/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
   "background_color": "#edf8ef",
   "theme_color": "#78b98b",
-  "categories": ["finance", "productivity"],
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "images/budgeticon-192.png",
+      "src": "/duck-budget/images/budgeticon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "images/budgeticon-512.png",
+      "src": "/duck-budget/images/budgeticon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
