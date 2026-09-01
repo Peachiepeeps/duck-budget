@@ -1,1 +1,120 @@
+name: Undo accidental Duck Quest upload
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore Duck Budget and remove Duck Quest files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          echo "Creating a safety backup branch first..."
+          BACKUP_BRANCH="backup-before-duck-quest-cleanup-${GITHUB_RUN_ID}"
+          git branch "$BACKUP_BRANCH" HEAD
+          git push origin "$BACKUP_BRANCH"
+
+          echo "Finding the most recent clean Duck Budget index..."
+          GOOD=""
+
+          # HEAD is the commit that added this workflow.
+          # Search backward for the newest commit from before the accidental
+          # Duck Quest / Duck Habit Hub root upload.
+          START="$(git rev-parse HEAD^)"
+
+          while read -r COMMIT; do
+            if git cat-file -e "${COMMIT}:index.html" 2>/dev/null; then
+              INDEX_CONTENT="$(git show "${COMMIT}:index.html" 2>/dev/null || true)"
+
+              if ! printf '%s' "$INDEX_CONTENT" | grep -q 'openDuckQuestGame' \
+                 && ! printf '%s' "$INDEX_CONTENT" | grep -q 'script-v24-42.js'; then
+
+                if ! git ls-tree -r --name-only "$COMMIT" | grep -q '^duck-quest/'; then
+                  GOOD="$COMMIT"
+                  break
+                fi
+              fi
+            fi
+          done < <(git rev-list "$START")
+
+          if [ -z "$GOOD" ]; then
+            echo "Could not automatically find the pre-Duck-Quest version."
+            echo "Nothing was changed."
+            exit 1
+          fi
+
+          echo "Restoring index.html from clean commit: $GOOD"
+          git checkout "$GOOD" -- index.html
+
+          echo "Removing the accidentally uploaded Duck Quest folder..."
+          rm -rf duck-quest
+
+          echo "Removing Duck Habit Hub root files that do not belong in Duck Budget..."
+          rm -f style-v24-42.css
+          rm -f script-v24-42.js
+          rm -f README-duck-quest-v01.txt
+
+          echo "Installing a tiny one-time service-worker cleanup at the accidentally registered path..."
+          cat > sw-v24-42.js <<'EOF'
+          // One-time cleanup worker for an accidental Duck Habit Hub upload.
+          // It removes only Duck Habit Hub caches, unregisters itself,
+          // and does NOT touch localStorage / Duck Budget data.
+          self.addEventListener("install", () => self.skipWaiting());
+
+          self.addEventListener("activate", event => {
+            event.waitUntil((async () => {
+              const keys = await caches.keys();
+              await Promise.all(
+                keys
+                  .filter(key => key.startsWith("duck-habit-hub-"))
+                  .map(key => caches.delete(key))
+              );
+
+              await self.registration.unregister();
+
+              const windows = await self.clients.matchAll({
+                type: "window",
+                includeUncontrolled: true
+              });
+
+              for (const client of windows) {
+                try {
+                  await client.navigate(client.url);
+                } catch (_) {}
+              }
+            })());
+          });
+
+          self.addEventListener("fetch", () => {});
+          EOF
+
+          # Remove this cleanup workflow from the repo after it has done its job.
+          rm -f .github/workflows/undo-duck-quest-from-duck-budget.yml
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No cleanup changes were necessary."
+            exit 0
+          fi
+
+          git commit -m "Restore Duck Budget after accidental Duck Quest upload"
+          git push
+
+          echo "Duck Budget restored."
+          echo "Safety backup branch: $BACKUP_BRANCH"
