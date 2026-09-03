@@ -1,0 +1,54 @@
+name: Restore Duck Budget
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Find recovery ZIP
+        id: recovery
+        shell: bash
+        run: |
+          set -e
+          ZIP="$(find . -maxdepth 1 -type f -name 'duck-budget-latest-recovery*.zip' -printf '%f\n' | sort | tail -n 1)"
+
+          if [ -z "$ZIP" ]; then
+            echo "::error::No duck-budget-latest-recovery ZIP was found in the repository root."
+            exit 1
+          fi
+
+          echo "Found: $ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Duck Budget files
+        shell: bash
+        run: |
+          set -e
+          unzip -o "${{ steps.recovery.outputs.zip }}" -d .
+          rm -f README-RESTORE.txt
+          rm -f "${{ steps.recovery.outputs.zip }}"
+
+      - name: Commit restored files
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Restore Duck Budget app"
+            git push
+          fi
