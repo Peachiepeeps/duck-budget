@@ -1,1 +1,51 @@
+name: Restore Duck Budget
 
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Restore Duck Budget files
+        shell: bash
+        run: |
+          set -e
+
+          ZIP="duck-budget-latest-recovery.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::Could not find $ZIP in the repository root."
+            exit 1
+          fi
+
+          echo "Extracting $ZIP into the repository root..."
+          unzip -o "$ZIP" -d .
+
+          # The recovery ZIP contains a helper README that is not needed on the live site.
+          rm -f README-RESTORE.txt
+
+          # Remove the uploaded recovery archive after restoring.
+          rm -f "$ZIP"
+
+      - name: Commit restored files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Restore Duck Budget app"
+            git push
+          fi
