@@ -1,0 +1,110 @@
+name: Fix Bill Occurrence Field
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-bills:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Update bill occurrence UI
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          index_path = Path("index.html")
+          if not index_path.exists():
+              raise SystemExit("index.html was not found in the repository root.")
+
+          text = index_path.read_text(encoding="utf-8")
+
+          if 'id="billFrequency"' not in text:
+              raise SystemExit(
+                  "The current index.html does not contain the bill recurrence selector "
+                  "(billFrequency). Restore/update Duck Budget first, then run this workflow."
+              )
+
+          original = text
+
+          text = text.replace(
+              '<label for="billFrequency">Due date</label>',
+              '<label for="billFrequency">Occurrence</label>'
+          )
+
+          text = text.replace(
+              '<label for="billDay">Day of the month</label>',
+              '<label for="billDay">Due date</label>'
+          )
+
+          text = text.replace(
+              "quarterly:['First / next due date','The app will repeat this bill every 3 months from this date.'],",
+              "quarterly:['Due date','The app will repeat this bill every 3 months from this date.'],"
+          )
+          text = text.replace(
+              "semiannual:['First / next due date','The app will repeat this bill every 6 months from this date.'],",
+              "semiannual:['Due date','The app will repeat this bill every 6 months from this date.'],"
+          )
+          text = text.replace(
+              "yearly:['Annual due date','The month and day will repeat every year.'],",
+              "yearly:['Due date','The month and day will repeat every year.'],"
+          )
+
+          if "How often this bill repeats." not in text:
+              old = """          </select>
+        </div>
+
+        <div id="billScheduleFields"></div>"""
+              new = """          </select>
+          <div class="help">How often this bill repeats.</div>
+        </div>
+
+        <div id="billScheduleFields"></div>"""
+              text = text.replace(old, new, 1)
+
+          if text == original:
+              print("The occurrence/due-date labels already appear to be updated.")
+          else:
+              index_path.write_text(text, encoding="utf-8")
+              print("Updated index.html")
+
+          sw_path = Path("service-worker.js")
+          if sw_path.exists():
+              sw = sw_path.read_text(encoding="utf-8")
+              updated = re.sub(
+                  r"duck-budget-pwa-v(\d+)",
+                  lambda m: f"duck-budget-pwa-v{int(m.group(1)) + 1}",
+                  sw,
+                  count=1
+              )
+              if updated != sw:
+                  sw_path.write_text(updated, encoding="utf-8")
+                  print("Bumped service-worker cache version.")
+              else:
+                  print("No Duck Budget cache version was found to bump.")
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html
+          if [ -f service-worker.js ]; then
+            git add service-worker.js
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Add bill occurrence field"
+            git push
+          fi
