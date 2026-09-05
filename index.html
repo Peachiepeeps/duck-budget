@@ -368,15 +368,70 @@
     return assetIcon('images/heart-coin.png',cls,'Heart coin');
   }
 
+  function ordinal(n){
+    const value=Number(n);
+    const mod100=value%100;
+    if(mod100>=11 && mod100<=13) return `${value}th`;
+    return `${value}${value%10===1?'st':value%10===2?'nd':value%10===3?'rd':'th'}`;
+  }
+  function billFrequency(bill){
+    return bill?.frequency || 'monthly';
+  }
+  function billScheduleLabel(bill){
+    const frequency=billFrequency(bill);
+    if(frequency==='monthly'){
+      return String(bill.dueDay)==='last' ? 'Monthly on the last day' : `Monthly on the ${ordinal(Number(bill.dueDay)||1)}`;
+    }
+    if(frequency==='quarterly') return 'Quarterly';
+    if(frequency==='semiannual') return 'Every 6 months';
+    if(frequency==='yearly') return 'Yearly';
+    if(frequency==='once') return 'One-time';
+    return 'Scheduled';
+  }
+  function monthlyDueDate(year,month,dueDay){
+    const maxDay=new Date(year,month+1,0).getDate();
+    const day=String(dueDay)==='last' ? maxDay : Math.min(Math.max(1,Number(dueDay)||1),maxDay);
+    return new Date(year,month,day,12);
+  }
+  function addMonthsClamped(date,months){
+    const targetMonth=date.getMonth()+months;
+    const year=date.getFullYear()+Math.floor(targetMonth/12);
+    const month=((targetMonth%12)+12)%12;
+    const maxDay=new Date(year,month+1,0).getDate();
+    return new Date(year,month,Math.min(date.getDate(),maxDay),12);
+  }
   function billOccurrencesBetween(bill,startISO,endISO){
-    const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end) return [];
-    const out=[]; let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
-    const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
-    while(cursor<=endMonth && out.length<24){
-      const maxDay=new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate();
-      const d=new Date(cursor.getFullYear(),cursor.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
-      if(d>=start && d<end) out.push(toISO(d));
-      cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+    const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end||end<=start) return [];
+    const frequency=billFrequency(bill);
+    const out=[];
+
+    if(frequency==='monthly'){
+      let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
+      const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
+      while(cursor<=endMonth && out.length<60){
+        const d=monthlyDueDate(cursor.getFullYear(),cursor.getMonth(),bill.dueDay);
+        if(d>=start && d<end) out.push(toISO(d));
+        cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+      }
+      return out;
+    }
+
+    const anchor=parseDate(bill.anchorDate);
+    if(!anchor) return out;
+    if(frequency==='once'){
+      if(anchor>=start && anchor<end) out.push(toISO(anchor));
+      return out;
+    }
+
+    const intervalMonths=frequency==='quarterly'?3:frequency==='semiannual'?6:12;
+    const monthDiff=(start.getFullYear()-anchor.getFullYear())*12+(start.getMonth()-anchor.getMonth());
+    let step=Math.max(0,Math.floor(monthDiff/intervalMonths)-1);
+
+    while(step<240 && out.length<60){
+      const d=addMonthsClamped(anchor,step*intervalMonths);
+      if(d>=end) break;
+      if(d>=start && d>=anchor) out.push(toISO(d));
+      step++;
     }
     return out;
   }
@@ -388,24 +443,37 @@
   }
   function isBillOccurrencePaid(billId,dueISO){
     const due=parseDate(dueISO); if(!due) return false;
-    return state.transactions.some(t=>t.billId===billId && t.type==='expense' && (()=>{ const td=parseDate(t.date); return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth(); })());
+    return state.transactions.some(t=>{
+      if(t.billId!==billId || t.type!=='expense') return false;
+      if(t.billDueDate) return t.billDueDate===dueISO;
+      const td=parseDate(t.date);
+      return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth();
+    });
   }
   function nextBillOccurrence(bill){
     const today=parseDate(todayISO());
-    for(let add=0; add<14; add++){
-      const monthDate=new Date(today.getFullYear(),today.getMonth()+add,1,12);
-      const maxDay=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,0).getDate();
-      const due=new Date(monthDate.getFullYear(),monthDate.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
-      const dueISO=toISO(due);
-      if(add===0 && due<today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
-      if(due>=today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
+    if(!today) return null;
+
+    const frequency=billFrequency(bill);
+    if(frequency==='once'){
+      const date=bill.anchorDate;
+      return date && !isBillOccurrencePaid(bill.id,date) ? date : null;
     }
-    return null;
+
+    const lookback=new Date(today.getFullYear()-1,today.getMonth(),today.getDate(),12);
+    const future=new Date(today.getFullYear()+2,today.getMonth()+1,today.getDate(),12);
+    const occurrences=billOccurrencesBetween(bill,toISO(lookback),toISO(future));
+
+    const unpaidPast=occurrences
+      .filter(date=>parseDate(date)<today && !isBillOccurrencePaid(bill.id,date))
+      .sort((a,b)=>b.localeCompare(a));
+    if(unpaidPast.length) return unpaidPast[0];
+
+    return occurrences.find(date=>parseDate(date)>=today && !isBillOccurrencePaid(bill.id,date)) || null;
   }
   function upcomingBills(limit=99){
     return state.bills.map(b=>({bill:b,date:nextBillOccurrence(b)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,limit);
   }
-
   function goalSaved(goal){
     return num(goal.startingSaved)+state.transactions.filter(t=>t.type==='savings'&&t.goalId===goal.id).reduce((s,t)=>s+num(t.amount),0);
   }
@@ -493,21 +561,19 @@
     const root=$('#page-bills');
     const rows=upcomingBills(99);
     root.innerHTML=`
-      <div class="page-title"><div><h2>Bills</h2><div class="small muted">Recurring monthly expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>
-      <div class="card notice">🍋 Bills are matched to the paycheck that comes before their due date. The Planner can suggest how much to reserve automatically.</div>
-      <div class="card">${rows.length?`<div class="list">${rows.map(({bill,date})=>billRow(bill,date,false)).join('')}</div>`:`<div class="empty"><div class="big">🍋</div><strong>No bills yet</strong><div class="small">Add rent, phone, subscriptions, insurance, and other regular bills.</div></div>`}</div>`;
+      <div class="page-title"><div><h2>Bills</h2><div class="small muted">Monthly, quarterly, yearly & one-time expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>
+      <div class="card notice"><span class="icon-label">${duck('bills','tiny')}<span>Bills are matched to the paycheck that comes before their due date. The Planner can suggest how much to reserve automatically.</span></span></div>
+      <div class="card">${rows.length?`<div class="list">${rows.map(({bill,date})=>billRow(bill,date,false)).join('')}</div>`:`<div class="empty"><div class="big">${duck('bills')}</div><strong>No bills yet</strong><div class="small">Add rent, subscriptions, insurance, annual fees, and other regular bills.</div></div>`}</div>`;
     $('#addBillBtn')?.addEventListener('click',()=>openBillForm());
     $$('.bill-edit',root).forEach(b=>b.addEventListener('click',()=>openBillForm(b.dataset.id)));
     $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
   }
-
   function billRow(bill,date,compact){
     const due=parseDate(date), now=parseDate(todayISO());
     const overdue=due<now;
     const paid=isBillOccurrencePaid(bill.id,date);
-    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
+    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>${escapeHtml(billScheduleLabel(bill))} • Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
   }
-
   function renderPlanner(){
     const root=$('#page-planner');
     const plan=currentPlan();
@@ -636,7 +702,8 @@
         id:existing?.id||uid(), type, category, amount,
         note:$('#txNote').value.trim(), date:$('#txDate').value||todayISO(), planId:$('#txPlan').value||'',
         goalId:type==='savings'?$('#txGoal').value:'', debtId:type==='debt'?$('#txDebt').value:'',
-        billId:(type==='expense'&&category==='bills')?$('#txBill').value:''
+        billId:(type==='expense'&&category==='bills')?$('#txBill').value:'',
+        billDueDate:existing?.billDueDate||''
       };
       if(existing) state.transactions=state.transactions.map(t=>t.id===existing.id?record:t); else state.transactions.push(record);
       closeSheet(); saveState(existing?'Transaction updated':'Transaction added');
@@ -648,29 +715,102 @@
 
   function openBillForm(id=null){
     const b=id?state.bills.find(x=>x.id===id):null;
+    const initialFrequency=billFrequency(b);
+    const initialDueDay=String(b?.dueDay||'1');
+    const initialAnchor=b?.anchorDate||todayISO();
+    const dayOptions=Array.from({length:31},(_,i)=>{
+      const day=i+1;
+      return `<option value="${day}" ${initialDueDay===String(day)?'selected':''}>${ordinal(day)} day of each month</option>`;
+    }).join('')+`<option value="last" ${initialDueDay==='last'?'selected':''}>Last day of each month</option>`;
+
     openSheet(b?'Edit Bill':'Add Bill',`
       <form id="billForm" class="form-grid">
         <div class="field"><label for="billName">Bill name</label><input id="billName" maxlength="60" required value="${escapeHtml(b?.name||'')}" placeholder="Rent, phone, Netflix…"></div>
-        <div class="field-row"><div class="field"><label for="billAmount">Amount</label><input id="billAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${b?escapeHtml(b.amount):''}" placeholder="0.00"></div><div class="field"><label for="billDay">Due day</label><input id="billDay" inputmode="numeric" type="number" min="1" max="31" required value="${b?escapeHtml(b.dueDay):''}" placeholder="15"></div></div>
+        <div class="field"><label for="billAmount">Amount</label><input id="billAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${b?escapeHtml(b.amount):''}" placeholder="0.00"></div>
+
+        <div class="field">
+          <label for="billFrequency">Occurrence</label>
+          <select id="billFrequency">
+            <option value="monthly" ${initialFrequency==='monthly'?'selected':''}>Monthly</option>
+            <option value="quarterly" ${initialFrequency==='quarterly'?'selected':''}>Quarterly (every 3 months)</option>
+            <option value="semiannual" ${initialFrequency==='semiannual'?'selected':''}>Every 6 months</option>
+            <option value="yearly" ${initialFrequency==='yearly'?'selected':''}>Yearly</option>
+            <option value="once" ${initialFrequency==='once'?'selected':''}>One-time bill</option>
+          </select>
+          <div class="help">How often this bill repeats.</div>
+        </div>
+
+        <div id="billScheduleFields"></div>
+
         <label class="notice" style="display:flex;gap:9px;align-items:center"><input id="billAutopay" type="checkbox" ${b?.autopay?'checked':''}> <span><strong>Autopay</strong><br><span class="small">Just a label—this app never connects to your bank.</span></span></label>
         <button class="btn primary full" type="submit">${b?'Save bill':'Add bill'}</button>
         ${b?'<button class="btn danger full" id="deleteBillBtn" type="button">Delete bill</button>':''}
       </form>`);
+
+    const renderScheduleFields=()=>{
+      const frequency=$('#billFrequency').value;
+      const holder=$('#billScheduleFields');
+
+      if(frequency==='monthly'){
+        holder.innerHTML=`
+          <div class="field">
+            <label for="billDay">Due date</label>
+            <select id="billDay">${dayOptions}</select>
+            <div class="help">Choose the 1st, 15th, last day of the month, or whichever day this bill is normally due.</div>
+          </div>`;
+        return;
+      }
+
+      const labels={
+        quarterly:['Due date','The app will repeat this bill every 3 months from this date.'],
+        semiannual:['Due date','The app will repeat this bill every 6 months from this date.'],
+        yearly:['Due date','The month and day will repeat every year.'],
+        once:['Due date','This bill will only appear once.']
+      };
+      const [label,help]=labels[frequency]||labels.once;
+      holder.innerHTML=`
+        <div class="field">
+          <label for="billAnchorDate">${label}</label>
+          <input id="billAnchorDate" type="date" required value="${escapeHtml(initialAnchor)}">
+          <div class="help">${help}</div>
+        </div>`;
+    };
+
+    $('#billFrequency').addEventListener('change',renderScheduleFields);
+    renderScheduleFields();
+
     $('#billForm').addEventListener('submit',e=>{
-      e.preventDefault(); const amount=num($('#billAmount').value), dueDay=Math.min(31,Math.max(1,parseInt($('#billDay').value,10)||1));
+      e.preventDefault();
+      const amount=num($('#billAmount').value);
+      const frequency=$('#billFrequency').value;
       if(amount<=0){showToast('Enter a bill amount');return;}
-      const rec={id:b?.id||uid(),name:$('#billName').value.trim(),amount,dueDay,autopay:$('#billAutopay').checked};
+
+      const rec={
+        id:b?.id||uid(),
+        name:$('#billName').value.trim(),
+        amount,
+        frequency,
+        autopay:$('#billAutopay').checked
+      };
+
+      if(frequency==='monthly'){
+        rec.dueDay=$('#billDay').value||'1';
+      }else{
+        const anchorDate=$('#billAnchorDate').value;
+        if(!anchorDate){showToast('Choose a due date');return;}
+        rec.anchorDate=anchorDate;
+      }
+
       if(b) state.bills=state.bills.map(x=>x.id===b.id?rec:x); else state.bills.push(rec);
       closeSheet(); saveState(b?'Bill updated':'Bill added');
     });
     $('#deleteBillBtn')?.addEventListener('click',()=>{if(confirm('Delete this bill? Existing transactions will stay.')){state.bills=state.bills.filter(x=>x.id!==b.id);closeSheet();saveState('Bill deleted');}});
   }
-
   function markBillPaid(billId,dueDate){
     const b=state.bills.find(x=>x.id===billId); if(!b) return;
     if(isBillOccurrencePaid(billId,dueDate)){showToast('That bill is already marked paid');return;}
     const plan=currentPlan();
-    state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id});
+    state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id,billDueDate:dueDate});
     saveState(`${b.name} marked paid`);
   }
 
