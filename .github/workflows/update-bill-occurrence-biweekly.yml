@@ -1,0 +1,417 @@
+name: Add Bill Occurrence + Biweekly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-bills:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Update bill schedules
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/update_duck_budget_bills.py <<'PY'
+          from pathlib import Path
+          import re
+          
+          index_path = Path('index.html')
+          if not index_path.exists():
+              raise SystemExit('index.html was not found in the repository root.')
+          
+          html = index_path.read_text(encoding='utf-8')
+          original_html = html
+          
+          # If the recurrence system is not installed yet, upgrade the original monthly-only bill system.
+          if 'id="billFrequency"' not in html:
+              old_block = '''  function billOccurrencesBetween(bill,startISO,endISO){
+              const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end) return [];
+              const out=[]; let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
+              const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
+              while(cursor<=endMonth && out.length<24){
+                const maxDay=new Date(cursor.getFullYear(),cursor.getMonth()+1,0).getDate();
+                const d=new Date(cursor.getFullYear(),cursor.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
+                if(d>=start && d<end) out.push(toISO(d));
+                cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+              }
+              return out;
+            }
+            function suggestedBills(plan){
+              if(!plan) return {total:0,items:[]};
+              const items=[];
+              state.bills.forEach(b=>billOccurrencesBetween(b,plan.startDate,plan.nextPayDate).forEach(date=>items.push({bill:b,date})));
+              return { total:items.reduce((s,x)=>s+num(x.bill.amount),0), items:items.sort((a,b)=>a.date.localeCompare(b.date)) };
+            }
+            function isBillOccurrencePaid(billId,dueISO){
+              const due=parseDate(dueISO); if(!due) return false;
+              return state.transactions.some(t=>t.billId===billId && t.type==='expense' && (()=>{ const td=parseDate(t.date); return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth(); })());
+            }
+            function nextBillOccurrence(bill){
+              const today=parseDate(todayISO());
+              for(let add=0; add<14; add++){
+                const monthDate=new Date(today.getFullYear(),today.getMonth()+add,1,12);
+                const maxDay=new Date(monthDate.getFullYear(),monthDate.getMonth()+1,0).getDate();
+                const due=new Date(monthDate.getFullYear(),monthDate.getMonth(),Math.min(Number(bill.dueDay)||1,maxDay),12);
+                const dueISO=toISO(due);
+                if(add===0 && due<today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
+                if(due>=today && !isBillOccurrencePaid(bill.id,dueISO)) return dueISO;
+              }
+              return null;
+            }
+            function upcomingBills(limit=99){
+              return state.bills.map(b=>({bill:b,date:nextBillOccurrence(b)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,limit);
+            }
+          '''
+          
+              new_block = '''  function ordinal(n){
+              const value=Number(n);
+              const mod100=value%100;
+              if(mod100>=11 && mod100<=13) return `${value}th`;
+              return `${value}${value%10===1?'st':value%10===2?'nd':value%10===3?'rd':'th'}`;
+            }
+            function billFrequency(bill){
+              return bill?.frequency || 'monthly';
+            }
+            function billScheduleLabel(bill){
+              const frequency=billFrequency(bill);
+              if(frequency==='monthly'){
+                return String(bill.dueDay)==='last' ? 'Monthly on the last day' : `Monthly on the ${ordinal(Number(bill.dueDay)||1)}`;
+              }
+              if(frequency==='biweekly') return 'Every 2 weeks';
+              if(frequency==='quarterly') return 'Quarterly';
+              if(frequency==='semiannual') return 'Every 6 months';
+              if(frequency==='yearly') return 'Yearly';
+              if(frequency==='once') return 'One-time';
+              return 'Scheduled';
+            }
+            function monthlyDueDate(year,month,dueDay){
+              const maxDay=new Date(year,month+1,0).getDate();
+              const day=String(dueDay)==='last' ? maxDay : Math.min(Math.max(1,Number(dueDay)||1),maxDay);
+              return new Date(year,month,day,12);
+            }
+            function addMonthsClamped(date,months){
+              const targetMonth=date.getMonth()+months;
+              const year=date.getFullYear()+Math.floor(targetMonth/12);
+              const month=((targetMonth%12)+12)%12;
+              const maxDay=new Date(year,month+1,0).getDate();
+              return new Date(year,month,Math.min(date.getDate(),maxDay),12);
+            }
+            function addDays(date,days){
+              const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);
+              d.setDate(d.getDate()+days);
+              return d;
+            }
+            function billOccurrencesBetween(bill,startISO,endISO){
+              const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end||end<=start) return [];
+              const frequency=billFrequency(bill);
+              const out=[];
+          
+              // Backward-compatible: older bills only had dueDay, so they remain monthly.
+              if(frequency==='monthly'){
+                let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
+                const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
+                while(cursor<=endMonth && out.length<60){
+                  const d=monthlyDueDate(cursor.getFullYear(),cursor.getMonth(),bill.dueDay);
+                  if(d>=start && d<end) out.push(toISO(d));
+                  cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+                }
+                return out;
+              }
+          
+              const anchor=parseDate(bill.anchorDate);
+              if(!anchor) return out;
+              if(frequency==='once'){
+                if(anchor>=start && anchor<end) out.push(toISO(anchor));
+                return out;
+              }
+          
+              if(frequency==='biweekly'){
+                const dayMs=24*60*60*1000;
+                const diffDays=Math.floor((start-anchor)/dayMs);
+                let step=Math.max(0,Math.floor(diffDays/14)-1);
+                while(step<1000 && out.length<120){
+                  const d=addDays(anchor,step*14);
+                  if(d>=end) break;
+                  if(d>=start && d>=anchor) out.push(toISO(d));
+                  step++;
+                }
+                return out;
+              }
+          
+              const intervalMonths=frequency==='quarterly'?3:frequency==='semiannual'?6:12;
+              const monthDiff=(start.getFullYear()-anchor.getFullYear())*12+(start.getMonth()-anchor.getMonth());
+              let step=Math.max(0,Math.floor(monthDiff/intervalMonths)-1);
+          
+              while(step<240 && out.length<60){
+                const d=addMonthsClamped(anchor,step*intervalMonths);
+                if(d>=end) break;
+                if(d>=start && d>=anchor) out.push(toISO(d));
+                step++;
+              }
+              return out;
+            }
+            function suggestedBills(plan){
+              if(!plan) return {total:0,items:[]};
+              const items=[];
+              state.bills.forEach(b=>billOccurrencesBetween(b,plan.startDate,plan.nextPayDate).forEach(date=>items.push({bill:b,date})));
+              return { total:items.reduce((s,x)=>s+num(x.bill.amount),0), items:items.sort((a,b)=>a.date.localeCompare(b.date)) };
+            }
+            function isBillOccurrencePaid(billId,dueISO){
+              const due=parseDate(dueISO); if(!due) return false;
+              return state.transactions.some(t=>{
+                if(t.billId!==billId || t.type!=='expense') return false;
+                if(t.billDueDate) return t.billDueDate===dueISO;
+                const td=parseDate(t.date);
+                return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth();
+              });
+            }
+            function nextBillOccurrence(bill){
+              const today=parseDate(todayISO());
+              if(!today) return null;
+          
+              const frequency=billFrequency(bill);
+              if(frequency==='once'){
+                const date=bill.anchorDate;
+                return date && !isBillOccurrencePaid(bill.id,date) ? date : null;
+              }
+          
+              const lookback=new Date(today.getFullYear()-1,today.getMonth(),today.getDate(),12);
+              const future=new Date(today.getFullYear()+2,today.getMonth()+1,today.getDate(),12);
+              const occurrences=billOccurrencesBetween(bill,toISO(lookback),toISO(future));
+          
+              const unpaidPast=occurrences
+                .filter(date=>parseDate(date)<today && !isBillOccurrencePaid(bill.id,date))
+                .sort((a,b)=>b.localeCompare(a));
+              if(unpaidPast.length) return unpaidPast[0];
+          
+              return occurrences.find(date=>parseDate(date)>=today && !isBillOccurrencePaid(bill.id,date)) || null;
+            }
+            function upcomingBills(limit=99){
+              return state.bills.map(b=>({bill:b,date:nextBillOccurrence(b)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,limit);
+            }
+          '''
+          
+              if old_block not in html:
+                  raise SystemExit('Could not find the original monthly bill recurrence block. The app may be on an unexpected version.')
+              html = html.replace(old_block, new_block)
+          
+              html = html.replace(
+                  '<div class="page-title"><div><h2>Bills</h2><div class="small muted">Recurring monthly expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>',
+                  '<div class="page-title"><div><h2>Bills</h2><div class="small muted">Monthly, biweekly, quarterly, yearly & one-time expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>'
+              )
+          
+              old_row = '''    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
+          '''
+              new_row = '''    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>${escapeHtml(billScheduleLabel(bill))} • Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
+          '''
+              if old_row in html:
+                  html = html.replace(old_row, new_row)
+          
+              old_form_start = html.find('  function openBillForm(id=null){')
+              old_form_end = html.find('\n  function markBillPaid(', old_form_start)
+              if old_form_start < 0 or old_form_end < 0:
+                  raise SystemExit('Could not locate the bill form function.')
+          
+              new_form = '''  function openBillForm(id=null){
+              const b=id?state.bills.find(x=>x.id===id):null;
+              const initialFrequency=billFrequency(b);
+              const initialDueDay=String(b?.dueDay||'1');
+              const initialAnchor=b?.anchorDate||todayISO();
+              const dayOptions=Array.from({length:31},(_,i)=>{
+                const day=i+1;
+                return `<option value="${day}" ${initialDueDay===String(day)?'selected':''}>${ordinal(day)} day of each month</option>`;
+              }).join('')+`<option value="last" ${initialDueDay==='last'?'selected':''}>Last day of each month</option>`;
+          
+              openSheet(b?'Edit Bill':'Add Bill',`
+                <form id="billForm" class="form-grid">
+                  <div class="field"><label for="billName">Bill name</label><input id="billName" maxlength="60" required value="${escapeHtml(b?.name||'')}" placeholder="Rent, phone, Netflix…"></div>
+                  <div class="field"><label for="billAmount">Amount</label><input id="billAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${b?escapeHtml(b.amount):''}" placeholder="0.00"></div>
+          
+                  <div class="field">
+                    <label for="billFrequency">Occurrence</label>
+                    <select id="billFrequency">
+                      <option value="monthly" ${initialFrequency==='monthly'?'selected':''}>Monthly</option>
+                      <option value="biweekly" ${initialFrequency==='biweekly'?'selected':''}>Biweekly (every 2 weeks)</option>
+                      <option value="quarterly" ${initialFrequency==='quarterly'?'selected':''}>Quarterly (every 3 months)</option>
+                      <option value="semiannual" ${initialFrequency==='semiannual'?'selected':''}>Every 6 months</option>
+                      <option value="yearly" ${initialFrequency==='yearly'?'selected':''}>Yearly</option>
+                      <option value="once" ${initialFrequency==='once'?'selected':''}>One-time bill</option>
+                    </select>
+                    <div class="help">How often this bill repeats.</div>
+                  </div>
+          
+                  <div id="billScheduleFields"></div>
+          
+                  <label class="notice" style="display:flex;gap:9px;align-items:center"><input id="billAutopay" type="checkbox" ${b?.autopay?'checked':''}> <span><strong>Autopay</strong><br><span class="small">Just a label—this app never connects to your bank.</span></span></label>
+                  <button class="btn primary full" type="submit">${b?'Save bill':'Add bill'}</button>
+                  ${b?'<button class="btn danger full" id="deleteBillBtn" type="button">Delete bill</button>':''}
+                </form>`);
+          
+              const renderScheduleFields=()=>{
+                const frequency=$('#billFrequency').value;
+                const holder=$('#billScheduleFields');
+          
+                if(frequency==='monthly'){
+                  holder.innerHTML=`
+                    <div class="field">
+                      <label for="billDay">Due date</label>
+                      <select id="billDay">${dayOptions}</select>
+                      <div class="help">Choose the 1st, 15th, last day of the month, or whichever day this bill is normally due.</div>
+                    </div>`;
+                  return;
+                }
+          
+                const labels={
+                  biweekly:['Due date','Choose one due date and the app will repeat it every 2 weeks from there.'],
+                  quarterly:['Due date','The app will repeat this bill every 3 months from this date.'],
+                  semiannual:['Due date','The app will repeat this bill every 6 months from this date.'],
+                  yearly:['Due date','The month and day will repeat every year.'],
+                  once:['Due date','This bill will only appear once.']
+                };
+                const [label,help]=labels[frequency]||labels.once;
+                holder.innerHTML=`
+                  <div class="field">
+                    <label for="billAnchorDate">${label}</label>
+                    <input id="billAnchorDate" type="date" required value="${escapeHtml(initialAnchor)}">
+                    <div class="help">${help}</div>
+                  </div>`;
+              };
+          
+              $('#billFrequency').addEventListener('change',renderScheduleFields);
+              renderScheduleFields();
+          
+              $('#billForm').addEventListener('submit',e=>{
+                e.preventDefault();
+                const amount=num($('#billAmount').value);
+                const frequency=$('#billFrequency').value;
+                if(amount<=0){showToast('Enter a bill amount');return;}
+          
+                const rec={
+                  id:b?.id||uid(),
+                  name:$('#billName').value.trim(),
+                  amount,
+                  frequency,
+                  autopay:$('#billAutopay').checked
+                };
+          
+                if(frequency==='monthly'){
+                  rec.dueDay=$('#billDay').value||'1';
+                }else{
+                  const anchorDate=$('#billAnchorDate').value;
+                  if(!anchorDate){showToast('Choose a due date');return;}
+                  rec.anchorDate=anchorDate;
+                }
+          
+                if(b) state.bills=state.bills.map(x=>x.id===b.id?rec:x); else state.bills.push(rec);
+                closeSheet(); saveState(b?'Bill updated':'Bill added');
+              });
+              $('#deleteBillBtn')?.addEventListener('click',()=>{if(confirm('Delete this bill? Existing transactions will stay.')){state.bills=state.bills.filter(x=>x.id!==b.id);closeSheet();saveState('Bill deleted');}});
+            }
+          '''
+              html = html[:old_form_start] + new_form + html[old_form_end:]
+          
+              html = html.replace(
+                  "state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id});",
+                  "state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id,billDueDate:dueDate});"
+              )
+          
+              html = html.replace(
+                  "billId:(type==='expense'&&category==='bills')?$('#txBill').value:''",
+                  "billId:(type==='expense'&&category==='bills')?$('#txBill').value:'',\n        billDueDate:existing?.billDueDate||''"
+              )
+          
+          else:
+              # Recurrence support is already present. Just make sure Biweekly exists everywhere.
+              if 'value="biweekly"' not in html:
+                  html = html.replace(
+                      '<option value="monthly" ${initialFrequency===\'monthly\'?\'selected\':\'\'}>Monthly</option>',
+                      '<option value="monthly" ${initialFrequency===\'monthly\'?\'selected\':\'\'}>Monthly</option>\n            <option value="biweekly" ${initialFrequency===\'biweekly\'?\'selected\':\'\'}>Biweekly (every 2 weeks)</option>'
+                  )
+          
+              if "if(frequency==='biweekly') return 'Every 2 weeks';" not in html:
+                  html = html.replace(
+                      "    if(frequency==='quarterly') return 'Quarterly';",
+                      "    if(frequency==='biweekly') return 'Every 2 weeks';\n    if(frequency==='quarterly') return 'Quarterly';"
+                  )
+          
+              if "biweekly:['Due date'" not in html:
+                  html = html.replace(
+                      "      const labels={\n        quarterly:",
+                      "      const labels={\n        biweekly:['Due date','Choose one due date and the app will repeat it every 2 weeks from there.'],\n        quarterly:"
+                  )
+          
+              if "if(frequency==='biweekly'){" not in html:
+                  marker = "    const intervalMonths=frequency==='quarterly'?3:frequency==='semiannual'?6:12;"
+                  insertion = """    if(frequency==='biweekly'){
+                const dayMs=24*60*60*1000;
+                const diffDays=Math.floor((start-anchor)/dayMs);
+                let step=Math.max(0,Math.floor(diffDays/14)-1);
+                while(step<1000 && out.length<120){
+                  const d=new Date(anchor.getFullYear(),anchor.getMonth(),anchor.getDate(),12);
+                  d.setDate(d.getDate()+step*14);
+                  if(d>=end) break;
+                  if(d>=start && d>=anchor) out.push(toISO(d));
+                  step++;
+                }
+                return out;
+              }
+          
+          """
+                  if marker in html:
+                      html = html.replace(marker, insertion + marker)
+                  else:
+                      raise SystemExit('Recurrence UI exists, but the recurrence calculation block was not recognized.')
+          
+          # Helpful build marker.
+          if 'bill-schedules-biweekly-v1' not in html:
+              html = html.replace('<title>Duck Budget</title>', '<title>Duck Budget</title>\n  <meta name="duck-budget-build" content="bill-schedules-biweekly-v1" />', 1)
+          
+          if html != original_html:
+              index_path.write_text(html, encoding='utf-8')
+              print('Updated index.html with bill occurrence options including Biweekly.')
+          else:
+              print('No index.html changes were necessary.')
+          
+          # Bump Duck Budget cache version so installed devices receive the new form.
+          sw_path = Path('service-worker.js')
+          if sw_path.exists():
+              sw = sw_path.read_text(encoding='utf-8')
+              updated = re.sub(
+                  r"duck-budget-pwa-v(\d+)",
+                  lambda m: f"duck-budget-pwa-v{int(m.group(1))+1}",
+                  sw,
+                  count=1
+              )
+              if updated != sw:
+                  sw_path.write_text(updated, encoding='utf-8')
+                  print('Bumped service-worker cache version.')
+          PY
+
+          python3 /tmp/update_duck_budget_bills.py
+
+      - name: Commit update
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html
+          if [ -f service-worker.js ]; then
+            git add service-worker.js
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Add flexible bill occurrence options and biweekly"
+            git push
+          fi
