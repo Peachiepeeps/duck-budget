@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Duck Budget" />
   <title>Duck Budget</title>
+  <meta name="duck-budget-build" content="bill-schedules-biweekly-v1" />
   <link rel="manifest" href="manifest.json?v=2" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/budgeticon-180.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="images/budgeticon-192.png" />
@@ -382,6 +383,7 @@
     if(frequency==='monthly'){
       return String(bill.dueDay)==='last' ? 'Monthly on the last day' : `Monthly on the ${ordinal(Number(bill.dueDay)||1)}`;
     }
+    if(frequency==='biweekly') return 'Every 2 weeks';
     if(frequency==='quarterly') return 'Quarterly';
     if(frequency==='semiannual') return 'Every 6 months';
     if(frequency==='yearly') return 'Yearly';
@@ -420,6 +422,20 @@
     if(!anchor) return out;
     if(frequency==='once'){
       if(anchor>=start && anchor<end) out.push(toISO(anchor));
+      return out;
+    }
+
+    if(frequency==='biweekly'){
+      const dayMs=24*60*60*1000;
+      const diffDays=Math.floor((start-anchor)/dayMs);
+      let step=Math.max(0,Math.floor(diffDays/14)-1);
+      while(step<1000 && out.length<120){
+        const d=new Date(anchor.getFullYear(),anchor.getMonth(),anchor.getDate(),12);
+        d.setDate(d.getDate()+step*14);
+        if(d>=end) break;
+        if(d>=start && d>=anchor) out.push(toISO(d));
+        step++;
+      }
       return out;
     }
 
@@ -732,6 +748,7 @@
           <label for="billFrequency">Occurrence</label>
           <select id="billFrequency">
             <option value="monthly" ${initialFrequency==='monthly'?'selected':''}>Monthly</option>
+            <option value="biweekly" ${initialFrequency==='biweekly'?'selected':''}>Biweekly (every 2 weeks)</option>
             <option value="quarterly" ${initialFrequency==='quarterly'?'selected':''}>Quarterly (every 3 months)</option>
             <option value="semiannual" ${initialFrequency==='semiannual'?'selected':''}>Every 6 months</option>
             <option value="yearly" ${initialFrequency==='yearly'?'selected':''}>Yearly</option>
@@ -762,6 +779,7 @@
       }
 
       const labels={
+        biweekly:['Due date','Choose one due date and the app will repeat it every 2 weeks from there.'],
         quarterly:['Due date','The app will repeat this bill every 3 months from this date.'],
         semiannual:['Due date','The app will repeat this bill every 6 months from this date.'],
         yearly:['Due date','The month and day will repeat every year.'],
