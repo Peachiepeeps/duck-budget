@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#78b98b" />
+  <meta name="application-name" content="Duck Budget" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Duck Budget" />
+  <title>Duck Budget</title>
+  <meta name="duck-budget-build" content="bill-schedules-biweekly-v1" />
+  <link rel="manifest" href="manifest.json?v=2" />
+  <link rel="apple-touch-icon" sizes="180x180" href="images/budgeticon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="images/budgeticon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="images/budgeticon-512.png" />
+  <style>
+    :root {
+      --green-900:#315743;
+      --green-800:#3e6a51;
+      --green-700:#4e7f60;
+      --green-600:#66a77d;
+      --green-500:#78b98b;
+      --green-300:#b9dfc3;
+      --green-200:#d6eddc;
+      --green-100:#edf8ef;
+      --cream:#fffaf0;
+      --paper:#fffef9;
+      --ink:#2f3a33;
+      --muted:#758078;
+      --line:#dfe8e1;
+      --shadow:0 8px 24px rgba(45,74,57,.10);
+      --danger:#b44b56;
+      --danger-soft:#f9e4e6;
+      --warning:#a77722;
+      --warning-soft:#fff1cf;
+      --food:#f4b46f;
+      --fun:#eaa7bd;
+      --bills:#f2d66b;
+      --shopping:#c9b2e8;
+      --savings:#9ed7b0;
+      --debt:#ee9a9a;
+      --income:#9bbfd9;
+    }
+    *{box-sizing:border-box}
+    html{background:var(--green-100)}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:linear-gradient(180deg,#f6fbf7 0%,#edf7ef 100%);
+      font-family:ui-rounded,"SF Pro Rounded","Nunito",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      min-height:100dvh;
+    }
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(102,167,125,.35);outline-offset:2px}
+    .app{
+      width:min(100%,520px);
+      margin:0 auto;
+      min-height:100dvh;
+      padding:calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand-mark{width:44px;height:44px;border-radius:14px;background:var(--green-200);display:grid;place-items:center;font-size:24px;overflow:hidden;border:1px solid rgba(49,87,67,.08)}
+    .brand-mark img{width:100%;height:100%;object-fit:cover}
+    .brand h1{font-size:21px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.02em}
+    .brand p{margin:3px 0 0;color:var(--muted);font-size:12px}
+    .icon-btn{border:0;background:var(--paper);width:44px;height:44px;border-radius:14px;box-shadow:var(--shadow);display:grid;place-items:center;font-size:19px;color:var(--green-900)}
+    .page{display:none;animation:fade .18s ease}
+    .page.active{display:block}
+    @keyframes fade{from{opacity:.5;transform:translateY(2px)}to{opacity:1;transform:none}}
+    .card{background:var(--paper);border:1px solid rgba(49,87,67,.08);border-radius:22px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+    .hero{background:linear-gradient(145deg,#416d53,#6eaa7d);color:white;padding:20px;position:relative;overflow:hidden}
+    .hero::after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.08);right:-85px;top:-90px}
+    .eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:800;opacity:.78}
+    .hero-value{font-size:42px;line-height:1.05;font-weight:900;letter-spacing:-.04em;margin:6px 0 4px;word-break:break-word}
+    .hero-sub{font-size:13px;opacity:.9}
+    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;position:relative;z-index:1}
+    .hero-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px}
+    .hero-stat small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;opacity:.72}
+    .hero-stat strong{display:block;font-size:16px;margin-top:2px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 10px}
+    .section-head h2{font-size:16px;margin:0;letter-spacing:-.01em}
+    .section-head button,.text-btn{border:0;background:none;color:var(--green-700);font-weight:800;padding:6px;font-size:13px}
+    .empty{text-align:center;padding:24px 10px;color:var(--muted)}
+    .empty .big{font-size:34px;margin-bottom:6px}
+    .empty strong{display:block;color:var(--ink);margin-bottom:4px}
+    .btn{border:0;border-radius:14px;padding:12px 15px;font-weight:800;min-height:44px}
+    .btn.primary{background:var(--green-700);color:white}
+    .btn.soft{background:var(--green-100);color:var(--green-900)}
+    .btn.warn{background:var(--warning-soft);color:var(--warning)}
+    .btn.danger{background:var(--danger-soft);color:var(--danger)}
+    .btn.full{width:100%}
+    .btn-row{display:flex;gap:9px;flex-wrap:wrap}
+    .btn-row .btn{flex:1 1 130px}
+    .budget-list{display:grid;gap:11px}
+    .budget-row{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center}
+    .duck-avatar{position:relative;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;overflow:hidden;background:var(--green-100);font-size:22px;flex:0 0 auto}
+    .duck-avatar .duck-fallback{position:absolute;inset:0;display:grid;place-items:center}
+    .duck-avatar img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:transparent}
+    .duck-avatar.tiny{width:30px;height:30px;border-radius:10px;font-size:16px}
+    .icon-label{display:flex;align-items:center;gap:8px;min-width:0}
+    .icon-label > span:last-child{min-width:0}
+    .asset-icon{width:30px;height:30px;object-fit:contain;vertical-align:middle;display:inline-block}
+    .asset-icon.coin{width:24px;height:24px}
+    .section-duck-title{display:flex;align-items:center;gap:9px}
+    .section-duck-title .duck-avatar{width:40px;height:40px;border-radius:13px}
+    .debt-card{padding:14px;border:1px solid var(--line);border-radius:18px;background:white}
+    .debt-card + .debt-card{margin-top:9px}
+    .debt-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .debt-top strong{font-size:15px}
+    .debt-top .amount{font-size:13px}
+    .budget-copy{min-width:0}
+    .budget-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+    .budget-top strong{font-size:14px}
+    .budget-top span{font-size:12px;color:var(--muted);white-space:nowrap}
+    .progress{height:8px;background:#edf1ed;border-radius:999px;overflow:hidden;margin-top:7px}
+    .progress > span{display:block;height:100%;border-radius:inherit;background:var(--green-600);width:0;transition:width .2s ease}
+    .progress.over > span{background:var(--danger)}
+    .budget-left{font-size:12px;font-weight:800;color:var(--green-800);white-space:nowrap}
+    .budget-left.over{color:var(--danger)}
+    .list{display:grid;gap:8px}
+    .list-item{display:flex;align-items:center;gap:11px;padding:11px;border:1px solid var(--line);border-radius:16px;background:white;min-width:0}
+    .item-copy{min-width:0;flex:1}
+    .item-copy strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-copy span{display:block;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .amount{font-weight:900;font-size:14px;white-space:nowrap}
+    .amount.income{color:var(--green-700)}
+    .mini-action{border:0;background:var(--green-100);color:var(--green-800);font-weight:800;font-size:12px;border-radius:10px;padding:8px 10px;min-height:34px}
+    .mini-action.danger{background:var(--danger-soft);color:var(--danger)}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .metric{border:1px solid var(--line);border-radius:17px;padding:13px;background:white}
+    .metric span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+    .metric strong{display:block;margin-top:5px;font-size:20px;letter-spacing:-.02em}
+    .page-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 2px 14px}
+    .page-title h2{margin:0;font-size:24px;letter-spacing:-.03em}
+    .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:var(--green-100);color:var(--green-800);font-size:11px;font-weight:800;padding:6px 9px}
+    .pill.overdue{background:var(--danger-soft);color:var(--danger)}
+    .pill.paid{background:#e4f4e8;color:#39724a}
+    .plan-name{font-size:20px;font-weight:900;margin:3px 0 2px}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .planner-alloc{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+    .alloc{border-radius:16px;padding:12px;border:1px solid var(--line);background:white}
+    .alloc strong{display:block;font-size:13px}
+    .alloc span{display:block;font-size:18px;font-weight:900;margin-top:4px}
+    .goal-card{padding:14px;border:1px solid var(--line);border-radius:18px;background:white}
+    .goal-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .goal-top strong{font-size:15px}
+    .goal-top .amount{font-size:13px}
+    .goal-actions{display:flex;gap:8px;margin-top:10px}
+    .goal-actions button{flex:1}
+    .fab{position:fixed;right:max(18px,calc((100vw - 520px)/2 + 18px));bottom:calc(78px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:20px;border:0;background:var(--green-800);color:white;font-size:30px;line-height:1;box-shadow:0 10px 26px rgba(49,87,67,.28);z-index:25}
+    .bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,520px);z-index:20;background:rgba(255,254,249,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+    .nav-btn{border:0;background:transparent;color:var(--muted);min-height:55px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:800}
+    .nav-btn .nav-icon{width:28px;height:28px;display:grid;place-items:center;line-height:1}
+    .nav-btn .nav-icon img{width:100%;height:100%;object-fit:contain;display:block}
+    .nav-btn.active{background:var(--green-100);color:var(--green-900)}
+    .sheet-backdrop{position:fixed;inset:0;background:rgba(25,38,30,.34);z-index:60;display:none;align-items:flex-end;justify-content:center;padding-top:32px}
+    .sheet-backdrop.open{display:flex}
+    .sheet{width:min(100%,520px);max-height:92dvh;overflow:auto;background:var(--paper);border-radius:26px 26px 0 0;padding:14px 16px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px rgba(24,45,31,.18)}
+    .sheet-handle{width:46px;height:5px;border-radius:999px;background:#d9ded9;margin:0 auto 12px}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+    .sheet-head h2{font-size:20px;margin:0}
+    .close-btn{border:0;background:var(--green-100);width:40px;height:40px;border-radius:13px;font-size:18px;color:var(--green-900)}
+    .form-grid{display:grid;gap:13px}
+    .field label{display:block;font-size:12px;font-weight:900;margin:0 0 6px;color:var(--green-900)}
+    .field input,.field select,.field textarea{width:100%;border:1px solid #dce5de;background:white;border-radius:13px;padding:12px 12px;color:var(--ink);min-height:46px;font-size:16px}
+    .field textarea{min-height:82px;resize:vertical}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .help{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}
+    .segmented{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:var(--green-100);border-radius:14px;padding:4px}
+    .segmented button{border:0;background:transparent;color:var(--green-800);padding:9px 5px;border-radius:11px;font-size:11px;font-weight:900;min-height:42px}
+    .segmented button.active{background:white;box-shadow:0 3px 10px rgba(49,87,67,.08);color:var(--ink)}
+    .category-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .cat-choice{border:1px solid var(--line);background:white;border-radius:14px;padding:8px 5px;min-height:76px;font-size:10px;font-weight:800;color:var(--ink)}
+    .cat-choice .duck-avatar{width:38px;height:38px;margin:0 auto 4px;border-radius:12px}
+    .cat-choice.selected{border:2px solid var(--green-600);background:var(--green-100)}
+    .notice{border-radius:15px;padding:11px 12px;font-size:12px;line-height:1.45;background:var(--green-100);color:var(--green-900)}
+    .notice.warn{background:var(--warning-soft);color:#765518}
+    .notice.danger{background:var(--danger-soft);color:#863843}
+    .divider{height:1px;background:var(--line);margin:16px 0}
+    .settings-section h3{font-size:15px;margin:0 0 9px}
+    .settings-section + .settings-section{margin-top:20px}
+    .hidden{display:none!important}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(146px + env(safe-area-inset-bottom));z-index:100;background:#2f4537;color:white;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s}
+    .toast.show{opacity:1}
+    @media(min-width:700px){
+      body{padding:18px 0}.app{border-radius:28px;background:#f5faf6;box-shadow:0 18px 60px rgba(45,74,57,.12);min-height:calc(100dvh - 36px)}
+      .bottom-nav{bottom:18px;border:1px solid var(--line);border-radius:20px;width:500px;padding:7px}
+      .fab{bottom:98px}
+      .sheet{border-radius:26px;margin-bottom:18px;max-height:88dvh}
+      .sheet-backdrop{align-items:flex-end}
+    }
+
+
+    /* Catch-Up Home: intentionally separate from paycheck allocation math. */
+    .bottom-nav.simple-nav{grid-template-columns:repeat(3,1fr)}
+    .simple-nav [data-tab="transactions"],.simple-nav [data-tab="planner"]{display:none}
+    .catchup-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .catchup-heading h2{font-size:23px;margin:0 0 3px;letter-spacing:-.03em}
+    .catchup-tag{font-weight:800;font-size:11px;color:var(--green-700);background:var(--green-100);padding:7px 9px;border-radius:20px}
+    .catchup-hero{background:linear-gradient(135deg,#426d54,#6eaa80);color:white}
+    .catchup-hero .eyebrow{opacity:.9}
+    .catchup-hero .hero-value{font-size:40px;margin:8px 0 6px}
+    .catchup-hero .simple-hero-desc{font-size:12px;line-height:1.55;opacity:.94}
+    .catchup-hero .btn{background:white;color:var(--green-900);min-height:42px;margin-top:14px}
+    .simple-sum{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+    .simple-sum>div{padding:12px;border:1px solid rgba(255,255,255,.23);border-radius:14px;background:rgba(255,255,255,.11)}
+    .simple-sum small{display:block;font-size:11px;line-height:1.4;opacity:.92}
+    .simple-sum strong{display:block;font-size:20px;margin-top:5px;overflow-wrap:anywhere}
+    .simple-breakdown{display:grid;gap:10px;margin-top:13px}
+    .simple-breakdown>div{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
+    .simple-breakdown b{font-size:14px;white-space:nowrap}
+    .simple-breakdown .simple-rule{border-top:1px solid var(--line);padding-top:12px}
+    .simple-footnote{font-size:11px;line-height:1.5;color:var(--muted);margin-top:11px}
+    .simple-next{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+    .simple-next strong{display:block;font-size:19px;line-height:1.3;margin:6px 0}
+    .simple-next small{display:block;color:var(--muted);line-height:1.45}
+    .simple-big-number{font-size:26px;font-weight:900;letter-spacing:-.02em}
+    .simple-subtext{font-size:12px;color:var(--muted);line-height:1.5}
+    .catchup-card-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .catchup-card-title h3{font-size:15px;margin:0}
+    .catchup-step{display:flex;align-items:center;gap:10px;margin:11px 0 0;font-size:12px;color:var(--green-900)}
+    .catchup-step span{background:var(--green-100);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:900;flex-shrink:0}
+    .simple-empty{padding:10px 0;font-size:12px;color:var(--muted);line-height:1.5}
+
+    /* Weekly shopping & meal planning */
+    .shopping-entry{display:flex;align-items:center;gap:13px;background:linear-gradient(125deg,#f6efff,#fffdfa);border-color:#e7d8f5}
+    .shopping-entry .duck-avatar{width:58px;height:58px;border-radius:18px;flex-shrink:0}
+    .shopping-entry-copy{flex:1;min-width:0}
+    .shopping-entry-copy strong{display:block;font-size:16px;color:var(--green-900)}
+    .shopping-entry-copy span{display:block;font-size:12px;line-height:1.5;color:#657265;margin-top:3px}
+    .shopping-entry-button{border:0;border-radius:13px;padding:10px 12px;background:#6b538a;color:white;font-size:12px;font-weight:900;min-height:44px;flex-shrink:0}
+    .shopping-heading{display:flex;gap:11px;align-items:center}
+    .shopping-heading h2{margin:0}
+    .shopping-heading .duck-avatar{width:45px;height:45px}
+    .shopping-week-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+    .shopping-week-nav .mini-action{min-width:44px;min-height:44px;font-size:17px}
+    .shopping-week-label{text-align:center;font-weight:900;font-size:16px}
+    .shopping-week-label small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:2px}
+    .shopping-summary{background:linear-gradient(145deg,#594d75,#8372a4);color:white}
+    .shopping-summary .eyebrow{opacity:.9}
+    .shopping-budget-line{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .shopping-budget-value{font-size:35px;font-weight:900;letter-spacing:-.04em;margin:5px 0}
+    .shopping-summary .btn{background:rgba(255,255,255,.18);color:white;border:1px solid rgba(255,255,255,.4);min-height:42px}
+    .shopping-summary .progress{background:rgba(255,255,255,.22);height:11px;margin:13px 0 7px}
+    .shopping-summary .progress > span{background:#dbd2ff}
+    .shopping-summary .progress.over > span{background:#ffd0c9}
+    .shopping-metrics{display:flex;gap:10px;margin-top:15px}
+    .shopping-metrics>div{flex:1;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px;background:rgba(255,255,255,.1);min-width:0}
+    .shopping-metrics span{display:block;font-size:10px;font-weight:800;text-transform:uppercase;opacity:.85;letter-spacing:.04em}
+    .shopping-metrics strong{display:block;font-size:18px;margin-top:4px;overflow-wrap:anywhere}
+    .shopping-days{display:grid;gap:9px}
+    .shopping-day-row{display:flex;align-items:center;text-align:left;gap:12px;width:100%;padding:12px;border:1px solid var(--line);border-radius:17px;background:#fff;color:var(--ink);min-height:75px}
+    .shopping-day-row:active{background:#f5f0fa}
+    .shopping-day-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#f3eaf9;flex-shrink:0;font-size:22px}
+    .shopping-day-text{flex:1;min-width:0}
+    .shopping-day-text strong{display:block;font-size:14px}
+    .shopping-day-text span{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .shopping-day-total{font-weight:900;text-align:right;font-size:13px;white-space:nowrap}
+    .shopping-day-total small{display:block;font-weight:700;font-size:10px;color:var(--muted);margin-top:4px}
+    .shopping-day-arrow{font-size:19px;color:#9482ac}
+    .shopping-day-row.today{border-color:#b9a2d0;background:#fbf8ff}
+    .shopping-meal{border:1px solid #e4deeb;background:#fff;border-radius:17px;padding:13px;margin-top:11px}
+    .shopping-meal-head{display:flex;align-items:center;justify-content:space-between;gap:9px}
+    .shopping-meal-head strong{font-size:15px}
+    .shopping-meal-head small{color:var(--muted);display:block;margin-top:3px;font-size:11px}
+    .shopping-item-row{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding:9px 0;font-size:13px}
+    .shopping-item-row:first-child{margin-top:7px}
+    .shopping-item-row span{flex:1;overflow-wrap:anywhere}
+    .shopping-item-row b{white-space:nowrap;font-size:12px}
+    .shopping-inline-form{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:7px;margin-top:10px}
+    .shopping-inline-form input{min-width:0;width:100%;border:1px solid #dce5de;border-radius:11px;padding:9px;font-size:16px;background:white;color:var(--ink);min-height:42px}
+    .shopping-inline-form .btn{grid-column:1/-1;min-height:40px;padding:9px}
+    .shopping-inline-form label{font-size:11px;color:var(--muted);font-weight:800;display:block;margin-bottom:4px}
+    .shopping-new-meal{border:1px dashed #bea9d0;background:#fbf7ff;padding:13px;border-radius:17px;margin-top:13px}
+    .shopping-new-meal .shopping-inline-form{grid-template-columns:1fr auto}
+    .shopping-new-meal .shopping-inline-form .btn{grid-column:auto}
+    .shopping-back{border:0;background:transparent;padding:7px 4px;color:var(--green-700);font-weight:900;font-size:13px}
+    .shopping-checklist{margin-top:13px}
+    .shopping-checklist summary{font-weight:900;cursor:pointer;padding:5px 0}
+    .shopping-check-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+    .shopping-check-row:last-child{border-bottom:0}
+    .shopping-check-row input{width:18px;height:18px;flex-shrink:0;accent-color:var(--green-700)}
+    .shopping-check-row span{flex:1;min-width:0}
+    .shopping-check-row small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+    .shopping-check-row.checked .shopping-check-label{text-decoration:line-through;color:var(--muted)}
+    .shopping-check-row b{font-size:12px;white-space:nowrap}
+    @media(max-width:380px){.shopping-entry{flex-wrap:wrap}.shopping-entry-button{margin-left:auto}.shopping-day-row{gap:7px;padding:9px}.shopping-day-icon{width:42px;height:42px}.shopping-day-arrow{display:none}}
+
+    /* Tab-first layout: header + one internally scrollable pane + persistent tabs. */
+    html,body{height:100%;overflow:hidden}
+    .app{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+    .topbar{flex:0 0 auto}
+    .page.active{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:16px}
+    .page:focus-visible{outline:0}
+    .bottom-nav.simple-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .bottom-nav:not(.simple-nav){grid-template-columns:repeat(6,minmax(0,1fr))}
+    .simple-nav [data-tab="transactions"],.simple-nav [data-tab="planner"]{display:none}
+    .bottom-nav:not(.simple-nav) [data-tab="dailypay"]{display:none}
+    .nav-btn{gap:3px;min-width:0;padding:5px 1px;font-size:10px}
+    .nav-btn .nav-icon{width:30px;height:30px}
+    .nav-btn .nav-icon img{object-fit:contain;image-rendering:auto}
+    .brand-mark{background:#fff7e9}
+    .brand-mark img{object-fit:contain;image-rendering:pixelated;width:96%;height:96%}
+    .catchup-heading h2{font-size:20px}
+    .catchup-heading{margin:0 0 10px}
+    .catchup-hero{padding:17px 18px;margin-bottom:12px}
+    .catchup-hero .hero-value{font-size:36px}
+    .catchup-hero .btn{margin-top:10px}
+    .catchup-hero .simple-sum{margin-top:11px}
+    .catchup-hero .simple-sum>div{padding:9px}
+    .catchup-hero .simple-sum strong{font-size:16px}
+    .catchup-hero .simple-sum small{font-size:10px}
+    .tiny-duck{height:28px;width:28px;object-fit:contain;vertical-align:middle;flex:0 0 auto}
+    .duckie-title{display:flex;align-items:center;gap:9px}
+    .duckie-title .tiny-duck{height:40px;width:40px;image-rendering:pixelated}
+    .catchup-quicklinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:12px}
+    .quick-tile{min-height:105px;display:flex;align-items:center;flex-direction:column;justify-content:center;gap:5px;border:1px solid #dce9dc;border-radius:19px;background:#fffef9;box-shadow:var(--shadow);color:var(--green-900);padding:10px 5px;text-align:center}
+    .quick-tile img{height:43px;width:43px;object-fit:contain}
+    .quick-tile strong{font-size:12px}
+    .quick-tile small{font-size:10px;line-height:1.35;color:var(--muted)}
+    .mini-money-card{padding:13px 15px;margin-bottom:11px}
+    .mini-money-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .mini-money-head strong{font-size:14px}
+    .mini-money-head button{padding:6px 10px}
+    .mini-money-list{margin-top:7px;display:grid;gap:6px}
+    .mini-money-list>div{display:flex;gap:9px;align-items:center;justify-content:space-between;font-size:12px}
+    .mini-money-list b{font-size:13px}
+    .mini-money-list .mini-money-total{border-top:1px solid var(--line);padding-top:7px;font-weight:900}
+    .mini-buffer{background:#f6f8ff;border-color:#dee7fb}
+    .mini-buffer .progress{margin-top:10px}
+    .one-screen-note{font-size:11px;color:var(--muted);line-height:1.4;margin:0 3px 9px}
+    .daily-hero{padding:17px;margin-bottom:12px}
+    .daily-hero .hero-value{font-size:34px}
+    .daily-hero .hero-sub{font-size:13px}
+    .daily-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 12px}
+    .daily-stats .metric{background:var(--paper);padding:12px}
+    .daily-stats .metric strong{font-size:19px}
+    .shopping-day-icon{padding:4px}
+    .shopping-day-icon img{width:100%;height:100%;object-fit:contain}
+    .shopping-day-row{min-height:60px;padding:8px 11px}
+    .shopping-day-icon{width:42px;height:42px}
+    .shopping-days{gap:7px}
+    .shopping-week-nav{padding:9px 12px;margin-bottom:9px}
+    .shopping-week-label{font-size:13px}
+    .shopping-summary{padding:12px 15px;margin-bottom:10px}
+    .shopping-budget-value{font-size:27px}
+    .shopping-summary .progress{margin:8px 0 4px}
+    .shopping-metrics{margin-top:8px}
+    .shopping-metrics>div{padding:8px}
+    .shopping-metrics strong{font-size:15px}
+    .shopping-heading .duck-avatar{width:37px;height:37px}
+    .shopping-heading h2{font-size:22px}
+    .page-title{margin:0 2px 8px}
+    .page-title .shopping-back{font-size:11px}
+    .shopping-view-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:4px;margin-bottom:9px;background:#f1edf6;border-radius:15px}
+    .shopping-view-tabs button{border:0;background:transparent;color:#665973;border-radius:11px;min-height:36px;font-size:12px;font-weight:800}
+    .shopping-view-tabs button.active{background:white;color:#51385e;box-shadow:0 2px 8px rgba(65,38,88,.10)}
+    .shopping-day-card{padding:11px}
+    .shopping-list-card{padding:10px 15px}
+    .shopping-list-card .shopping-check-row{padding:8px 0}
+    @media(min-width:700px){
+      body{padding:18px 0}
+      .app{height:calc(100dvh - 36px);min-height:0;padding-bottom:76px}
+      .bottom-nav{bottom:18px}
+    }
+    @media(max-height:730px){
+      .app{padding-top:calc(8px + env(safe-area-inset-top))}
+      .topbar{margin-bottom:9px}
+      .catchup-hero .hero-value{font-size:30px}
+      .quick-tile{min-height:85px;padding:6px 3px}
+      .quick-tile img{width:33px;height:33px}
+    }
+
+    /* Compact phone optimization: show all Sun–Sat rows without a long page. */
+    .shopping-day-row{min-height:47px;padding:4px 8px;gap:8px;border-radius:12px}
+    .shopping-day-icon{width:35px;height:35px;border-radius:10px}
+    .shopping-days{gap:4px}
+    .shopping-day-card{padding:8px}
+    .shopping-day-text strong{font-size:13px}
+    .shopping-day-text span{font-size:11px;margin-top:1px}
+    .shopping-day-total{font-size:12px}
+    .shopping-day-total small{margin-top:1px}
+    .shopping-week-nav{padding:5px 9px;min-height:43px;margin-bottom:7px}
+    .shopping-week-nav .mini-action{min-height:34px;min-width:36px}
+    .shopping-summary{padding:9px 12px;margin-bottom:7px;border-radius:17px}
+    .shopping-budget-value{font-size:25px;margin:2px 0 0}
+    .shopping-summary .progress{margin:6px 0 3px;height:7px}
+    .shopping-metrics{margin-top:6px;gap:7px}
+    .shopping-metrics>div{padding:5px 9px;border-radius:10px}
+    .shopping-metrics strong{font-size:14px;margin-top:1px}
+    .shopping-view-tabs{margin-bottom:7px;padding:3px}
+    .shopping-view-tabs button{min-height:30px}
+    #shoppingBack{display:none}
+    #page-shopping .page-title{margin-bottom:5px}
+    #page-shopping .shopping-heading h2{font-size:20px}
+    #page-shopping .shopping-heading .small{font-size:11px}
+    .catchup-hero{padding:13px 16px}
+    .catchup-hero .simple-sum{margin-top:9px}
+    .catchup-hero .simple-sum>div{padding:7px}
+    .catchup-quicklinks{gap:7px;margin-bottom:9px}
+    .quick-tile{min-height:92px;padding:7px 4px}
+    .quick-tile img{height:36px;width:36px}
+    .mini-money-card{padding:10px 13px;margin-bottom:9px}
+    .mini-money-list{margin-top:6px;gap:4px}
+    .one-screen-note{font-size:10px}
+    @media(max-width:380px){
+      .shopping-day-row{gap:6px;padding:4px 6px}
+      .shopping-day-icon{width:34px;height:34px}
+      .shopping-day-text span{font-size:10px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><img src="images/Standard-duck.PNG" alt="" /></div>
+        <div>
+          <h1>Duck Budget</h1>
+          <p id="todayLabel">Your cozy money planner</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Open settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.9 1.9-.07-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-.95 1.55V21h-2.7v-.99a1.7 1.7 0 0 0-.95-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-1.91-1.9.07-.07A1.7 1.7 0 0 0 7.9 15a1.7 1.7 0 0 0-1.56-.95H5.4v-2.7h.94A1.7 1.7 0 0 0 7.9 10.4a1.7 1.7 0 0 0-.34-1.88l-.06-.07 1.9-1.9.07.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 .95-1.56V4.4h2.7v.99a1.7 1.7 0 0 0 .95 1.56 1.7 1.7 0 0 0 1.88-.34l.07-.06 1.9 1.9-.06.07a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56.95h.94v2.7h-.94a1.7 1.7 0 0 0-1.56.95z"/></svg></button>
+    </header>
+
+    <section class="page active" id="page-home" data-page="home"></section>
+    <section class="page" id="page-transactions" data-page="transactions"></section>
+    <section class="page" id="page-bills" data-page="bills"></section>
+    <section class="page" id="page-planner" data-page="planner"></section>
+    <section class="page" id="page-goals" data-page="goals"></section>
+    <section class="page" id="page-shopping" data-page="shopping"></section>
+    <section class="page" id="page-dailypay" data-page="dailypay"></section>
+  </main>
+
+  <button class="fab" id="quickAddBtn" type="button" aria-label="Add transaction">+</button>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-btn active" data-tab="home" type="button"><span class="nav-icon"><img src="images/Standard-duck.PNG" alt=""></span><span>Home</span></button>
+    <button class="nav-btn" data-tab="transactions" type="button"><span class="nav-icon"><img src="images/sticker-coin.png" alt=""></span><span>Activity</span></button>
+    <button class="nav-btn" data-tab="bills" type="button"><span class="nav-icon"><img src="images/sticker-coin.png" alt=""></span><span>Bills</span></button>
+    <button class="nav-btn" data-tab="dailypay" type="button"><span class="nav-icon"><img src="images/Fancy-duck.PNG" alt=""></span><span>DailyPay</span></button>
+    <button class="nav-btn" data-tab="shopping" type="button"><span class="nav-icon"><img src="images/Burger-duck.PNG" alt=""></span><span>Shop</span></button>
+    <button class="nav-btn" data-tab="planner" type="button"><span class="nav-icon"><img src="images/stickerbook-icon.png" alt=""></span><span>Planner</span></button>
+    <button class="nav-btn" data-tab="goals" type="button"><span class="nav-icon"><img src="images/sticker-crown.png" alt=""></span><span>Goals</span></button>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true">
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2 id="sheetTitle">Add</h2>
+        <button class="close-btn" id="closeSheetBtn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="sheetContent"></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'duckBudget_v1';
+  const CATEGORIES = {
+    income:   { label:'Income', asset:'images/Standard-duck.PNG', color:'var(--income)' },
+    bills:    { label:'Bills', asset:'images/sticker-coin.png',     color:'var(--bills)' },
+    food:     { label:'Food', asset:'images/Burger-duck.PNG',    color:'var(--food)' },
+    fun:      { label:'Fun', asset:'images/Party-hat-duck.PNG',     color:'var(--fun)' },
+    shopping: { label:'Shopping / Other', asset:'images/Standard-duck.PNG', color:'var(--shopping)' },
+    savings:  { label:'Savings', asset:'images/sticker-crown.png',     color:'var(--savings)' },
+    debt:     { label:'Debt', asset:'images/Standard-duck.PNG',     color:'var(--debt)' }
+  };
+  const BUDGET_CATEGORIES = ['bills','food','fun','shopping','savings','debt'];
+  const FLEX_CATEGORIES = ['food','fun','shopping'];
+  const FIXED_CATEGORIES = ['bills','savings','debt'];
+
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+  const todayISO = () => {
+    const d = new Date();
+    return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+  };
+  const parseDate = (s) => {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))) return null;
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y,m-1,d,12,0,0,0);
+  };
+  const toISO = (d) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
+  const formatDate = (s, opts={month:'short',day:'numeric'}) => {
+    const d=parseDate(s); return d ? new Intl.DateTimeFormat(undefined,opts).format(d) : '—';
+  };
+  const daysBetween = (a,b) => {
+    const da=parseDate(a), db=parseDate(b); if(!da||!db) return null;
+    return Math.ceil((db-da)/86400000);
+  };
+  const money = (n) => {
+    const value=Number(n)||0;
+    return new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+  };
+  const num = (v) => Math.max(0, Number.parseFloat(v)||0);
+  const escapeHtml = (v='') => String(v).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+
+  const defaultSimple = () => ({
+    enabled:true, balance:null, balanceUpdatedAt:'', nextPayday:'', typicalTakeHome:null,
+    advanceCycles:{}, essentials:0, bufferReserved:0, bufferTarget:100
+  });
+  const defaultState = () => ({ version:3, plans:[], transactions:[], bills:[], goals:[], debts:[], shoppingWeeks:{}, simple:defaultSimple() });
+  let state = loadState();
+  let currentTab = 'home';
+  let shoppingWeekStart = weekStartISO(todayISO());
+  let toastTimer = null;
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    showToast('Duck Budget installed!');
+  });
+
+
+  function loadState(){
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed=JSON.parse(raw);
+      return normalizeState(parsed);
+    }catch(err){ return defaultState(); }
+  }
+  function normalizeState(data){
+    const base=defaultState();
+    if(!data || typeof data!=='object') return base;
+    for(const key of ['plans','transactions','bills','goals','debts']) base[key]=Array.isArray(data[key])?data[key]:[];
+    if(data.shoppingWeeks && typeof data.shoppingWeeks==='object' && !Array.isArray(data.shoppingWeeks)){
+      // Keep the shopping weeks from backups and existing data, without changing earlier budgets.
+      base.shoppingWeeks=Object.assign(Object.create(null),data.shoppingWeeks);
+    }
+    if(data.simple && typeof data.simple==='object' && !Array.isArray(data.simple)){
+      const old=data.simple, newer=defaultSimple();
+      newer.enabled=old.enabled!==false;
+      newer.balance=old.balance===null || old.balance===undefined ? null : (Number.isFinite(Number(old.balance))?Number(old.balance):null);
+      newer.balanceUpdatedAt=typeof old.balanceUpdatedAt==='string'?old.balanceUpdatedAt:'';
+      newer.nextPayday=parseDate(old.nextPayday)?old.nextPayday:'';
+      newer.typicalTakeHome=old.typicalTakeHome===null || old.typicalTakeHome===undefined ? null : num(old.typicalTakeHome);
+      newer.essentials=num(old.essentials);
+      newer.bufferReserved=num(old.bufferReserved);
+      newer.bufferTarget=num(old.bufferTarget);
+      if(old.advanceCycles && typeof old.advanceCycles==='object' && !Array.isArray(old.advanceCycles)){
+        for(const [day,amounts] of Object.entries(old.advanceCycles)){
+          if(parseDate(day) && amounts && typeof amounts==='object') newer.advanceCycles[day]={advance:num(amounts.advance),other:num(amounts.other)};
+        }
+      }
+      base.simple=newer;
+    }
+    return base;
+  }
+  function saveState(message){
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+      if(message) showToast(message);
+    }catch(err){
+      showToast('Could not save on this device. Try exporting a backup.');
+    }
+    renderAll();
+  }
+  function showToast(text){
+    const t=$('#toast'); t.textContent=text; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  function currentPlan(){
+    return state.plans.find(p=>p.active) || state.plans.slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))[0] || null;
+  }
+  function planTransactions(planId){ return state.transactions.filter(t=>t.planId===planId); }
+  function categorySpent(plan, category){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.category===category && t.type!=='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function planExtraIncome(plan){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.type==='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function totalOutgoing(plan){
+    if(!plan) return 0;
+    return planTransactions(plan.id).filter(t=>t.type!=='income').reduce((s,t)=>s+num(t.amount),0);
+  }
+  function safeToSpend(plan){
+    if(!plan) return 0;
+    const available=num(plan.income)+planExtraIncome(plan);
+    const spent=totalOutgoing(plan);
+    const fixedRemaining=FIXED_CATEGORIES.reduce((sum,c)=>{
+      const planned=num(plan.budgets?.[c]);
+      const used=categorySpent(plan,c);
+      return sum+Math.max(0,planned-used);
+    },0);
+    return available-spent-fixedRemaining;
+  }
+  function remainingInPlan(plan){ return plan ? num(plan.income)+planExtraIncome(plan)-totalOutgoing(plan) : 0; }
+  function unassigned(plan){ return plan ? num(plan.income)-BUDGET_CATEGORIES.reduce((s,c)=>s+num(plan.budgets?.[c]),0) : 0; }
+
+  function duck(category, cls=''){
+    const c=CATEGORIES[category]||CATEGORIES.shopping;
+    return `<span class="duck-avatar ${cls}" style="background:${c.color}"><img src="${c.asset}" alt="" onerror="this.style.display='none'"></span>`;
+  }
+  function assetIcon(path, cls='', alt=''){
+    return `<img class="asset-icon ${cls}" src="${path}" alt="${escapeHtml(alt)}" onerror="this.style.display='none'">`;
+  }
+  function coinIcon(cls='coin'){
+    return assetIcon('images/heart-coin.png',cls,'Heart coin');
+  }
+
+  function ordinal(n){
+    const value=Number(n);
+    const mod100=value%100;
+    if(mod100>=11 && mod100<=13) return `${value}th`;
+    return `${value}${value%10===1?'st':value%10===2?'nd':value%10===3?'rd':'th'}`;
+  }
+  function billFrequency(bill){
+    return bill?.frequency || 'monthly';
+  }
+  function billScheduleLabel(bill){
+    const frequency=billFrequency(bill);
+    if(frequency==='monthly'){
+      return String(bill.dueDay)==='last' ? 'Monthly on the last day' : `Monthly on the ${ordinal(Number(bill.dueDay)||1)}`;
+    }
+    if(frequency==='biweekly') return 'Every 2 weeks';
+    if(frequency==='quarterly') return 'Quarterly';
+    if(frequency==='semiannual') return 'Every 6 months';
+    if(frequency==='yearly') return 'Yearly';
+    if(frequency==='once') return 'One-time';
+    return 'Scheduled';
+  }
+  function monthlyDueDate(year,month,dueDay){
+    const maxDay=new Date(year,month+1,0).getDate();
+    const day=String(dueDay)==='last' ? maxDay : Math.min(Math.max(1,Number(dueDay)||1),maxDay);
+    return new Date(year,month,day,12);
+  }
+  function addMonthsClamped(date,months){
+    const targetMonth=date.getMonth()+months;
+    const year=date.getFullYear()+Math.floor(targetMonth/12);
+    const month=((targetMonth%12)+12)%12;
+    const maxDay=new Date(year,month+1,0).getDate();
+    return new Date(year,month,Math.min(date.getDate(),maxDay),12);
+  }
+  function billOccurrencesBetween(bill,startISO,endISO){
+    const start=parseDate(startISO), end=parseDate(endISO); if(!start||!end||end<=start) return [];
+    const frequency=billFrequency(bill);
+    const out=[];
+
+    if(frequency==='monthly'){
+      let cursor=new Date(start.getFullYear(),start.getMonth(),1,12);
+      const endMonth=new Date(end.getFullYear(),end.getMonth(),1,12);
+      while(cursor<=endMonth && out.length<60){
+        const d=monthlyDueDate(cursor.getFullYear(),cursor.getMonth(),bill.dueDay);
+        if(d>=start && d<end) out.push(toISO(d));
+        cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1,12);
+      }
+      return out;
+    }
+
+    const anchor=parseDate(bill.anchorDate);
+    if(!anchor) return out;
+    if(frequency==='once'){
+      if(anchor>=start && anchor<end) out.push(toISO(anchor));
+      return out;
+    }
+
+    if(frequency==='biweekly'){
+      const dayMs=24*60*60*1000;
+      const diffDays=Math.floor((start-anchor)/dayMs);
+      let step=Math.max(0,Math.floor(diffDays/14)-1);
+      while(step<1000 && out.length<120){
+        const d=new Date(anchor.getFullYear(),anchor.getMonth(),anchor.getDate(),12);
+        d.setDate(d.getDate()+step*14);
+        if(d>=end) break;
+        if(d>=start && d>=anchor) out.push(toISO(d));
+        step++;
+      }
+      return out;
+    }
+
+    const intervalMonths=frequency==='quarterly'?3:frequency==='semiannual'?6:12;
+    const monthDiff=(start.getFullYear()-anchor.getFullYear())*12+(start.getMonth()-anchor.getMonth());
+    let step=Math.max(0,Math.floor(monthDiff/intervalMonths)-1);
+
+    while(step<240 && out.length<60){
+      const d=addMonthsClamped(anchor,step*intervalMonths);
+      if(d>=end) break;
+      if(d>=start && d>=anchor) out.push(toISO(d));
+      step++;
+    }
+    return out;
+  }
+  function suggestedBills(plan){
+    if(!plan) return {total:0,items:[]};
+    const items=[];
+    state.bills.forEach(b=>billOccurrencesBetween(b,plan.startDate,plan.nextPayDate).forEach(date=>items.push({bill:b,date})));
+    return { total:items.reduce((s,x)=>s+num(x.bill.amount),0), items:items.sort((a,b)=>a.date.localeCompare(b.date)) };
+  }
+  function isBillOccurrencePaid(billId,dueISO){
+    const due=parseDate(dueISO); if(!due) return false;
+    return state.transactions.some(t=>{
+      if(t.billId!==billId || t.type!=='expense') return false;
+      if(t.billDueDate) return t.billDueDate===dueISO;
+      const td=parseDate(t.date);
+      return td && td.getFullYear()===due.getFullYear() && td.getMonth()===due.getMonth();
+    });
+  }
+  function nextBillOccurrence(bill){
+    const today=parseDate(todayISO());
+    if(!today) return null;
+
+    const frequency=billFrequency(bill);
+    if(frequency==='once'){
+      const date=bill.anchorDate;
+      return date && !isBillOccurrencePaid(bill.id,date) ? date : null;
+    }
+
+    const lookback=new Date(today.getFullYear()-1,today.getMonth(),today.getDate(),12);
+    const future=new Date(today.getFullYear()+2,today.getMonth()+1,today.getDate(),12);
+    const occurrences=billOccurrencesBetween(bill,toISO(lookback),toISO(future));
+
+    const unpaidPast=occurrences
+      .filter(date=>(!bill.createdOn || date>=bill.createdOn) && parseDate(date)<today && !isBillOccurrencePaid(bill.id,date))
+      .sort((a,b)=>b.localeCompare(a));
+    if(unpaidPast.length) return unpaidPast[0];
+
+    return occurrences.find(date=>(!bill.createdOn || date>=bill.createdOn) && parseDate(date)>=today && !isBillOccurrencePaid(bill.id,date)) || null;
+  }
+  function upcomingBills(limit=99){
+    return state.bills.map(b=>({bill:b,date:nextBillOccurrence(b)})).filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,limit);
+  }
+  function goalSaved(goal){
+    return num(goal.startingSaved)+state.transactions.filter(t=>t.type==='savings'&&t.goalId===goal.id).reduce((s,t)=>s+num(t.amount),0);
+  }
+  function debtRemaining(debt){
+    const paid=state.transactions.filter(t=>t.type==='debt'&&t.debtId===debt.id).reduce((s,t)=>s+num(t.amount),0);
+    return Math.max(0,num(debt.startingBalance)-paid);
+  }
+
+  function renderAll(){
+    $('.bottom-nav').classList.toggle('simple-nav',simpleMode());
+    $('#quickAddBtn').classList.toggle('hidden',simpleMode()||currentTab==='shopping');
+    $('#todayLabel').textContent=new Intl.DateTimeFormat(undefined,{weekday:'short',month:'short',day:'numeric'}).format(new Date());
+    renderHome(); renderTransactions(); renderBills(); renderPlanner(); renderGoals(); renderShopping(); renderDailyPay();
+  }
+
+  // Keep this simple check-in separate from the original paycheck planner.
+  // A balance is supplied by the user; no transaction, shopping plan, or DailyPay
+  // estimate is silently treated as additional income or an automatic bank sync.
+  function simpleMode(){return state.simple?.enabled!==false;}
+  function simpleBillWindow(){
+    const today=todayISO(), payday=state.simple.nextPayday;
+    const usePayday=payday && payday>=today;
+    const cutoff=usePayday?payday:shiftISO(today,13);
+    const earliest=shiftISO(today,-31);
+    const items=[];
+    for(const bill of state.bills){
+      for(const date of billOccurrencesBetween(bill,earliest,shiftISO(cutoff,1))){
+        if((!bill.createdOn || date>=bill.createdOn) && !isBillOccurrencePaid(bill.id,date)) items.push({bill,date});
+      }
+    }
+    items.sort((a,b)=>a.date.localeCompare(b.date));
+    return {items, cutoff, usesPayday:!!usePayday,total:Math.round(items.reduce((sum,x)=>sum+num(x.bill.amount),0)*100)/100};
+  }
+  // Short tab home: details live in the Bills, DailyPay and Shopping tabs.
+  function renderSimpleHome(){
+    const root=$('#page-home'), s=state.simple;
+    const hasBalance=s.balance!==null && s.balance!==undefined;
+    const balance=hasBalance?(Number(s.balance)||0):0;
+    const win=simpleBillWindow();
+    const reserved=num(s.bufferReserved), essentials=num(s.essentials);
+    const spendable=Math.round((balance-win.total-essentials-reserved)*100)/100;
+    const percentage=s.bufferTarget>0?Math.min(100,Math.round(reserved/s.bufferTarget*100)):0;
+    const when=s.nextPayday && s.nextPayday>=todayISO()?s.nextPayday:'';
+    const advance=s.advanceCycles[when]||{advance:0,other:0};
+    const estimated=s.typicalTakeHome===null?null:Math.max(0,Math.round((num(s.typicalTakeHome)-num(advance.advance)-num(advance.other))*100)/100);
+    root.innerHTML=`
+      <div class="catchup-heading"><div class="duckie-title"><img class="tiny-duck" src="images/Standard-duck.PNG" alt=""><div><h2>My money today</h2><div class="small muted">One step at a time</div></div></div><span class="catchup-tag">Catch-Up</span></div>
+      <div class="card catchup-hero">
+        <div class="eyebrow">${hasBalance?'Estimated free after essentials':'Start with your actual balance'}</div>
+        <div class="hero-value">${hasBalance?money(Math.max(0,spendable)):'—'}</div>
+        <div class="simple-hero-desc">${!hasBalance?'Enter your current checking/cash balance to see a useful starting number.':spendable<0?`You're ${money(-spendable)} short of what you've reserved. Check Bills and essentials.`:'After unpaid bills, planned essentials and your reserved cushion.'}</div>
+        <button class="btn" id="simpleBalanceBtn" type="button">${hasBalance?'Update my balance':'Enter my balance'}</button>
+        <div class="simple-sum"><div><small>Money on hand</small><strong>${hasBalance?money(balance):'—'}</strong></div><div><small>Needs reserved</small><strong>${money(win.total+essentials+reserved)}</strong></div></div>
+      </div>
+      <div class="catchup-quicklinks">
+        <button class="quick-tile" type="button" data-go="bills"><img src="images/sticker-coin.png" alt=""><strong>Bills</strong><small>${money(win.total)} to cover</small></button>
+        <button class="quick-tile" type="button" data-go="dailypay"><img src="images/Fancy-duck.PNG" alt=""><strong>DailyPay</strong><small>${when && estimated!==null?money(estimated)+' deposit':'Set next payday'}</small></button>
+        <button class="quick-tile" type="button" data-go="shopping"><img src="images/Burger-duck.PNG" alt=""><strong>Shopping</strong><small>Plan this week</small></button>
+      </div>
+      <div class="card mini-money-card"><div class="mini-money-head"><strong>Essentials until payday</strong><button class="mini-action" id="simpleNeedsBtn" type="button">Adjust</button></div>
+        <div class="mini-money-list"><div><span>Food, gas & basics</span><b>${money(essentials)}</b></div><div><span>Unpaid bills (${win.usesPayday?'until '+formatDate(win.cutoff):'next 14 days'})</span><b>${money(win.total)}</b></div><div class="mini-money-total"><span>Total protected, including cushion</span><b>${money(win.total+essentials+reserved)}</b></div></div></div>
+      <div class="card mini-money-card mini-buffer"><div class="mini-money-head"><strong>Payday cushion</strong><button class="mini-action" id="simpleBufferBtn" type="button">Edit</button></div><div class="mini-money-list"><div><span>Protected ${money(reserved)}</span><b>Goal ${money(s.bufferTarget)}</b></div></div><div class="progress"><span style="width:${percentage}%"></span></div></div>
+      <p class="one-screen-note">A manual planning snapshot, not a bank connection. Update your balance when you spend or receive money. DailyPay is part of your paycheck, not extra income.</p>`;
+    $('#simpleBalanceBtn').addEventListener('click',openSimpleBalance);
+    $('#simpleNeedsBtn').addEventListener('click',openSimpleNeeds);
+    $('#simpleBufferBtn').addEventListener('click',openSimpleNeeds);
+    $$('[data-go]',root).forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
+  }
+  function renderDailyPay(){
+    const root=$('#page-dailypay'),s=state.simple;
+    const when=s.nextPayday && s.nextPayday>=todayISO()?s.nextPayday:'';
+    const cycle=s.advanceCycles[when]||{advance:0,other:0};
+    const gross=s.typicalTakeHome;
+    const estimated=gross===null?null:Math.max(0,Math.round((num(gross)-num(cycle.advance)-num(cycle.other))*100)/100);
+    root.innerHTML=`
+      <div class="page-title"><div class="duckie-title"><img class="tiny-duck" src="images/Fancy-duck.PNG" alt=""><div><h2>DailyPay & Payday</h2><div class="small muted">Keep track of money received early</div></div></div></div>
+      <div class="card hero daily-hero"><div class="eyebrow">Estimated next paycheck deposit</div><div class="hero-value">${when && estimated!==null?money(estimated):'—'}</div><div class="hero-sub">${when?`Payday: ${formatDate(when,{weekday:'long',month:'short',day:'numeric'})}`:'Choose your next payday to get started'}</div><button class="btn" id="simplePaydayBtn" type="button" style="background:white;color:var(--green-900);margin-top:14px">${when?'Update DailyPay totals':'Set payday & DailyPay'}</button></div>
+      <div class="daily-stats"><div class="metric"><span>Usual take-home</span><strong>${gross===null?'—':money(gross)}</strong></div><div class="metric"><span>DailyPay used</span><strong>${money(num(cycle.advance))}</strong></div><div class="metric"><span>Other deductions</span><strong>${money(num(cycle.other))}</strong></div><div class="metric"><span>Days until payday</span><strong>${when?Math.max(0,daysBetween(todayISO(),when)):'—'}</strong></div></div>
+      <div class="card"><div class="duckie-title"><img class="tiny-duck" src="images/sticker-crown.png" alt=""><strong style="font-size:14px">Your catch-up goal</strong></div><div class="small muted" style="line-height:1.6;margin-top:9px">If you need DailyPay for essentials, keep using the amount you need. As your payday cushion grows, try reducing advances little by little, rather than stopping abruptly.</div></div>
+      <div class="notice">DailyPay advances are wages received ahead of payday. This is an estimate, not a bank sync; update your actual balance on Home when your deposit arrives. The estimate does not include transfer fees already paid outside payroll.</div>`;
+    $('#simplePaydayBtn').addEventListener('click',openSimplePayday);
+  }
+  function openSimpleBalance(){
+    const s=state.simple;
+    openSheet('Money on hand',`<form id="simpleBalanceForm" class="form-grid">
+      <div class="notice">Look at your actual checking account and any cash you want included. Include DailyPay money already received. You can enter a negative number if your balance is overdrawn. Don't include future paychecks or credit limits.</div>
+      <div class="field"><label for="simpleBalance">My available balance today ($)</label><input id="simpleBalance" type="number" min="-100000000" max="100000000" step="0.01" inputmode="decimal" required placeholder="0.00" value="${s.balance===null?'':escapeHtml(s.balance)}"></div>
+      <div class="small muted">${s.balanceUpdatedAt?'Last updated '+escapeHtml(s.balanceUpdatedAt):'Not entered yet'}. This is a manual snapshot, so update it again after spending or deposits.</div>
+      <button class="btn primary full" type="submit">Save current balance</button></form>`);
+    $('#simpleBalanceForm').addEventListener('submit',e=>{e.preventDefault();const value=Number($('#simpleBalance').value);if(!Number.isFinite(value)||Math.abs(value)>100000000){showToast('Enter a valid balance');return;}s.balance=Math.round(value*100)/100;s.balanceUpdatedAt=new Date().toLocaleString();closeSheet();saveState('Balance updated');});
+  }
+  function openSimpleNeeds(){
+    const s=state.simple;
+    openSheet('Essentials & cushion',`<form class="form-grid" id="simpleNeedsForm">
+      <div class="field"><label for="simpleEssentials">Food, gas & other basics still needed before payday ($)</label><input id="simpleEssentials" type="number" min="0" max="100000000" step="0.01" inputmode="decimal" required value="${escapeHtml(s.essentials)}"></div>
+      <div class="help">Shopping meal plans are estimates, not automatic deductions. Include expected groceries here if you need them before payday.</div>
+      <div class="field"><label for="simpleBufferReserved">Amount you're protecting as a cushion ($)</label><input id="simpleBufferReserved" type="number" min="0" max="100000000" step="0.01" inputmode="decimal" required value="${escapeHtml(s.bufferReserved)}"><div class="help">Only enter money that is included in the balance on Home. If savings are in another account, don't enter them here.</div></div>
+      <div class="field"><label for="simpleBufferTarget">First cushion target ($)</label><input id="simpleBufferTarget" type="number" min="0" max="100000000" step="0.01" inputmode="decimal" required value="${escapeHtml(s.bufferTarget)}"></div>
+      <button class="btn primary full" type="submit">Save essentials & cushion</button></form>`);
+    $('#simpleNeedsForm').addEventListener('submit',e=>{e.preventDefault();const ids=['simpleEssentials','simpleBufferReserved','simpleBufferTarget'];const vals=ids.map(id=>Number($('#'+id).value));if(vals.some(v=>!Number.isFinite(v)||v<0)){showToast('Enter valid amounts');return;}[s.essentials,s.bufferReserved,s.bufferTarget]=vals.map(v=>Math.round(v*100)/100);closeSheet();saveState('Needs and cushion updated');});
+  }
+  function openSimplePayday(){
+    const s=state.simple, cycle=s.advanceCycles[s.nextPayday]||{advance:0,other:0};
+    openSheet('Payday & DailyPay',`<form id="simplePaydayForm" class="form-grid">
+      <div class="field"><label for="simplePayDate">Next payday</label><input type="date" id="simplePayDate" min="${todayISO()}" required value="${escapeHtml(s.nextPayday)}"><div class="help">The DailyPay total below belongs to this payday. Changing dates loads that payday's saved amount.</div></div>
+      <div class="field"><label for="simpleFullPay">Usual take-home paycheck without DailyPay ($)</label><input type="number" id="simpleFullPay" min="0" step="0.01" max="100000000" inputmode="decimal" required placeholder="1200.00" value="${s.typicalTakeHome===null?'':escapeHtml(s.typicalTakeHome)}"></div>
+      <div class="field"><label for="simpleAdvance">Total DailyPay already taken from this paycheck ($)</label><input type="number" id="simpleAdvance" min="0" step="0.01" max="100000000" inputmode="decimal" required value="${escapeHtml(cycle.advance)}"><div class="help">Enter the <strong>running total</strong>, not just today's withdrawal. For example $80 + $20 = $100. Do not add it as new income.</div></div>
+      <div class="field"><label for="simpleOther">Any other amount reducing this paycheck deposit ($)</label><input type="number" id="simpleOther" min="0" step="0.01" max="100000000" inputmode="decimal" required value="${escapeHtml(cycle.other)}"><div class="help">Optional. Don't count a transfer fee twice if it was already paid from the advance itself.</div></div>
+      <div class="notice">Estimated deposit = usual take-home − DailyPay taken − other paycheck deductions. Enter the actual net payday deposit into your balance when it arrives; the app never adds forecast money automatically.</div>
+      <button class="btn primary full" type="submit">Save payday estimate</button></form>`);
+    function showCycle(){const cycle=s.advanceCycles[$('#simplePayDate').value]||{advance:0,other:0};$('#simpleAdvance').value=cycle.advance;$('#simpleOther').value=cycle.other;}
+    $('#simplePayDate').addEventListener('change',showCycle);
+    $('#simplePaydayForm').addEventListener('submit',e=>{e.preventDefault();const d=$('#simplePayDate').value;const vals=['simpleFullPay','simpleAdvance','simpleOther'].map(id=>Number($('#'+id).value));if(!parseDate(d)||d<todayISO()||vals.some(v=>!Number.isFinite(v)||v<0)){showToast('Check the payday and amounts');return;}s.nextPayday=d;s.typicalTakeHome=Math.round(vals[0]*100)/100;s.advanceCycles[d]={advance:Math.round(vals[1]*100)/100,other:Math.round(vals[2]*100)/100};closeSheet();saveState('Payday estimate updated');});
+  }
+
+  function renderHome(){
+    if(simpleMode()){renderSimpleHome();return;}
+    const root=$('#page-home');
+    const plan=currentPlan();
+    if(!plan){
+      root.innerHTML=`
+        <div class="card hero">
+          <div class="eyebrow">Safe to spend</div>
+          <div class="hero-value">$0.00</div>
+          <div class="hero-sub">Create a paycheck plan to get started.</div>
+        </div>
+        ${shoppingHomeCard()}
+        <div class="card empty"><div class="big"></div><strong>Let’s plan your first paycheck</strong><div class="small">Add your paycheck amount, next payday, and the amounts you want to reserve for each duck category.</div><div style="margin-top:14px"><button class="btn primary" id="homeCreatePlan" type="button">Create paycheck plan</button></div></div>`;
+      $('#homeCreatePlan')?.addEventListener('click',()=>openPlanForm());
+      $('#homeShoppingBtn')?.addEventListener('click',()=>setTab('shopping'));
+      return;
+    }
+    const days=daysBetween(todayISO(),plan.nextPayDate);
+    const safe=safeToSpend(plan);
+    const remaining=remainingInPlan(plan);
+    const bills=upcomingBills(3);
+    const goals=state.goals.slice(0,2);
+    const recent=state.transactions.slice().sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id)).slice(0,4);
+    const totalDebt=state.debts.reduce((s,d)=>s+debtRemaining(d),0);
+    const budgetsHtml=BUDGET_CATEGORIES.map(c=>{
+      const planned=num(plan.budgets?.[c]), spent=categorySpent(plan,c), left=planned-spent;
+      const pct=planned>0?Math.min(100,(spent/planned)*100):(spent>0?100:0);
+      const over=spent>planned && planned>=0;
+      return `<div class="budget-row">${duck(c)}<div class="budget-copy"><div class="budget-top"><strong>${CATEGORIES[c].label}</strong><span>${money(spent)} / ${money(planned)}</span></div><div class="progress ${over?'over':''}"><span style="width:${pct}%;background:${CATEGORIES[c].color}"></span></div></div><div class="budget-left ${left<0?'over':''}">${left>=0?money(left)+' left':money(Math.abs(left))+' over'}</div></div>`;
+    }).join('');
+    root.innerHTML=`
+      <div class="card hero">
+        <div class="eyebrow">Safe to spend</div>
+        <div class="hero-value">${money(safe)}</div>
+        <div class="hero-sub">${days===null?'Current paycheck plan':days<0?'Next payday has passed':days===0?'Payday is today!':`${days} day${days===1?'':'s'} until ${formatDate(plan.nextPayDate)}`}</div>
+        <div class="hero-grid">
+          <div class="hero-stat"><small>Paycheck</small><strong>${money(plan.income)}</strong></div>
+          <div class="hero-stat"><small>Plan remaining</small><strong>${money(remaining)}</strong></div>
+        </div>
+      </div>
+      ${shoppingHomeCard()}
+      <div class="section-head"><h2>This paycheck</h2><button type="button" data-go="planner">Edit plan</button></div>
+      <div class="card"><div class="budget-list">${budgetsHtml}</div></div>
+      <div class="section-head"><h2>Upcoming bills</h2><button type="button" data-go="bills">See all</button></div>
+      <div class="card">${bills.length?`<div class="list">${bills.map(({bill,date})=>billRow(bill,date,true)).join('')}</div>`:`<div class="empty"><div class="big"></div><strong>No bills added yet</strong><div class="small">Add recurring bills and I’ll help match them to each paycheck.</div></div>`}</div>
+      <div class="section-head"><h2>Goals</h2><button type="button" data-go="goals">See all</button></div>
+      <div class="card">${goals.length?goals.map(goalMini).join(''):`<div class="empty"><div class="big"></div><strong>No savings goals yet</strong><div class="small">Create a goal and savings transactions can fill it automatically.</div></div>`}</div>
+      ${state.debts.length?`<div class="section-head"><h2>Debt snapshot</h2><button type="button" data-go="goals">Manage</button></div><div class="card"><div class="two-col"><div class="metric"><span>Total remaining</span><strong>${money(totalDebt)}</strong></div><div class="metric"><span>This paycheck</span><strong>${money(categorySpent(plan,'debt'))}</strong></div></div></div>`:''}
+      <div class="section-head"><h2>Recent activity</h2><button type="button" data-go="transactions">See all</button></div>
+      <div class="card">${recent.length?`<div class="list">${recent.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big">${coinIcon('')}</div><strong>No transactions yet</strong><div class="small">Tap + to add your first one.</div></div>`}</div>`;
+    $('#homeShoppingBtn')?.addEventListener('click',()=>setTab('shopping'));
+    $$('[data-go]',root).forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.go)));
+    $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
+  }
+
+  function renderTransactions(){
+    const root=$('#page-transactions');
+    const plan=currentPlan();
+    const tx=state.transactions.slice().sort((a,b)=>(b.date+b.id).localeCompare(a.date+a.id));
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Transactions</h2><div class="small muted">Everything you’ve logged</div></div><button class="btn primary" id="addTxTop" type="button">+ Add</button></div>
+      ${plan?`<div class="card"><div class="two-col"><div class="metric"><span>Current plan spent</span><strong>${money(totalOutgoing(plan))}</strong></div><div class="metric"><span>Extra income</span><strong>${money(planExtraIncome(plan))}</strong></div></div></div>`:''}
+      <div class="card">${tx.length?`<div class="list">${tx.map(transactionRow).join('')}</div>`:`<div class="empty"><div class="big"></div><strong>Nothing here yet</strong><div class="small">Add purchases, savings, debt payments, or extra income.</div></div>`}</div>`;
+    $('#addTxTop')?.addEventListener('click',()=>openTransactionForm());
+    $$('.tx-edit',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(b.dataset.id)));
+  }
+
+  function transactionRow(t){
+    const cat=CATEGORIES[t.category]||CATEGORIES.shopping;
+    const sign=t.type==='income'?'+':'−';
+    const linked=t.goalId?state.goals.find(g=>g.id===t.goalId)?.name:t.debtId?state.debts.find(d=>d.id===t.debtId)?.name:t.billId?state.bills.find(b=>b.id===t.billId)?.name:'';
+    const note=escapeHtml(t.note||linked||cat.label);
+    return `<div class="list-item">${duck(t.category)}<div class="item-copy"><strong>${note}</strong><span>${cat.label} • ${formatDate(t.date)}</span></div><div class="amount ${t.type==='income'?'income':''}">${sign}${money(t.amount)}</div><button class="mini-action tx-edit" data-id="${t.id}" type="button" aria-label="Edit transaction">Edit</button></div>`;
+  }
+
+  function renderBills(){
+    const root=$('#page-bills');
+    const rows=upcomingBills(99);
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Bills</h2><div class="small muted">Monthly, quarterly, yearly & one-time expenses</div></div><button class="btn primary" id="addBillBtn" type="button">+ Bill</button></div>
+      <div class="card notice"><span class="icon-label">${duck('bills','tiny')}<span>Bills are matched to the paycheck that comes before their due date. The Planner can suggest how much to reserve automatically.</span></span></div>
+      <div class="card">${rows.length?`<div class="list">${rows.map(({bill,date})=>billRow(bill,date,false)).join('')}</div>`:`<div class="empty"><div class="big">${duck('bills')}</div><strong>No bills yet</strong><div class="small">Add rent, subscriptions, insurance, annual fees, and other regular bills.</div></div>`}</div>`;
+    $('#addBillBtn')?.addEventListener('click',()=>openBillForm());
+    $$('.bill-edit',root).forEach(b=>b.addEventListener('click',()=>openBillForm(b.dataset.id)));
+    $$('.mark-paid',root).forEach(b=>b.addEventListener('click',()=>markBillPaid(b.dataset.bill,b.dataset.date)));
+  }
+  function billRow(bill,date,compact){
+    const due=parseDate(date), now=parseDate(todayISO());
+    const overdue=due<now;
+    const paid=isBillOccurrencePaid(bill.id,date);
+    return `<div class="list-item">${duck('bills')}<div class="item-copy"><strong>${escapeHtml(bill.name)}</strong><span>${escapeHtml(billScheduleLabel(bill))} • Due ${formatDate(date)}${bill.autopay?' • Autopay':''}</span></div><div class="amount">${money(bill.amount)}</div>${paid?`<span class="pill paid">Paid</span>`:`<button class="mini-action mark-paid" data-bill="${bill.id}" data-date="${date}" type="button">${overdue?'Pay overdue':'Mark paid'}</button>`}${compact?'':`<button class="mini-action bill-edit" data-id="${bill.id}" type="button">Edit</button>`}</div>`;
+  }
+  function renderPlanner(){
+    const root=$('#page-planner');
+    const plan=currentPlan();
+    if(!plan){
+      root.innerHTML=`<div class="page-title"><div><h2>Paycheck Planner</h2><div class="small muted">Give every dollar a job</div></div></div><div class="card empty"><div class="big"></div><strong>No paycheck plan yet</strong><div class="small">Create one to set category limits and see your safe-to-spend amount.</div><div style="margin-top:14px"><button class="btn primary" id="plannerCreate" type="button">Create plan</button></div></div>`;
+      $('#plannerCreate')?.addEventListener('click',()=>openPlanForm());
+      return;
+    }
+    const sug=suggestedBills(plan), ua=unassigned(plan);
+    const alloc=BUDGET_CATEGORIES.map(c=>`<div class="alloc"><strong class="icon-label">${duck(c,'tiny')}<span>${CATEGORIES[c].label}</span></strong><span>${money(plan.budgets?.[c])}</span><div class="small muted">${money(categorySpent(plan,c))} used</div></div>`).join('');
+    const history=state.plans.filter(p=>p.id!==plan.id).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate))).slice(0,5);
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Paycheck Planner</h2><div class="small muted">Give every dollar a job</div></div><button class="btn primary" id="newPlanBtn" type="button">New plan</button></div>
+      <div class="card">
+        <div class="eyebrow" style="color:var(--green-700)">Current paycheck</div>
+        <div class="plan-name">${escapeHtml(plan.name||'Paycheck Plan')}</div>
+        <div class="small muted">${formatDate(plan.startDate)} → ${formatDate(plan.nextPayDate)} • ${money(plan.income)}</div>
+        <div class="planner-alloc">${alloc}</div>
+        <div class="divider"></div>
+        <div class="two-col"><div class="metric"><span>Unassigned</span><strong style="color:${ua<0?'var(--danger)':'inherit'}">${money(ua)}</strong></div><div class="metric"><span>Safe to spend</span><strong>${money(safeToSpend(plan))}</strong></div></div>
+        <div class="btn-row" style="margin-top:12px"><button class="btn soft" id="editPlanBtn" type="button">Edit plan</button><button class="btn soft" id="activateBillSuggestion" type="button">Use suggested bills</button></div>
+      </div>
+      <div class="section-head"><h2>Bill suggestion</h2></div>
+      <div class="card">${sug.items.length?`<div class="notice"><span class="icon-label">${duck('bills','tiny')}<span>Bills due before your next payday total <strong>${money(sug.total)}</strong>.</span></span></div><div class="list" style="margin-top:10px">${sug.items.map(x=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(x.bill.name)}</strong><span>${formatDate(x.date)}</span></div><div class="amount">${money(x.bill.amount)}</div></div>`).join('')}</div>`:`<div class="empty"><div class="big">${duck('bills')}</div><strong>No bills due in this paycheck window</strong><div class="small">Add bills on the Bills tab and I’ll suggest them here.</div></div>`}</div>
+      ${history.length?`<div class="section-head"><h2>Past plans</h2></div><div class="card"><div class="list">${history.map(p=>`<div class="list-item"><div class="item-copy"><strong>${escapeHtml(p.name||'Paycheck Plan')}</strong><span>${formatDate(p.startDate)} → ${formatDate(p.nextPayDate)}</span></div><div class="amount">${money(p.income)}</div><button class="mini-action activate-plan" data-id="${p.id}" type="button">Make current</button></div>`).join('')}</div></div>`:''}`;
+    $('#newPlanBtn')?.addEventListener('click',()=>openPlanForm(null,true));
+    $('#editPlanBtn')?.addEventListener('click',()=>openPlanForm(plan.id));
+    $('#activateBillSuggestion')?.addEventListener('click',()=>{
+      plan.budgets=plan.budgets||{}; plan.budgets.bills=sug.total; saveState('Bills budget updated');
+    });
+    $$('.activate-plan',root).forEach(b=>b.addEventListener('click',()=>{
+      state.plans.forEach(p=>p.active=p.id===b.dataset.id); saveState('Current plan changed');
+    }));
+  }
+
+  function renderGoals(){
+    const root=$('#page-goals');
+    const debtHtml=state.debts.length?state.debts.map(debtFull).join(''):`<div class="empty">${duck('debt')}<strong>No debt trackers yet</strong><div class="small">Add a debt nickname and balance so you can watch it shrink as you make payments.</div></div>`;
+    root.innerHTML=`
+      <div class="page-title"><div><h2>Goals</h2><div class="small muted">Save it up and pay it down</div></div></div>
+      <div class="section-head"><h2 class="section-duck-title">${duck('savings')}<span>Goals</span></h2><button class="btn primary" id="addGoalBtn" type="button">+ Goal</button></div>
+      <div class="card">${state.goals.length?`<div class="list">${state.goals.map(goalFull).join('')}</div>`:`<div class="empty">${duck('savings')}<strong>No goals yet</strong><div class="small">Emergency fund, a trip, a purchase—anything you want to build toward.</div></div>`}</div>
+      <div class="section-head"><h2 class="section-duck-title">${duck('debt')}<span>Debt Tracker</span></h2><button class="btn soft" id="addDebtBtn" type="button">+ Debt</button></div>
+      <div class="card">${debtHtml}</div>`;
+    $('#addGoalBtn')?.addEventListener('click',()=>openGoalForm());
+    $$('.goal-edit',root).forEach(b=>b.addEventListener('click',()=>openGoalForm(b.dataset.id)));
+    $$('.goal-add',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'savings',goalId:b.dataset.id})));
+    $('#addDebtBtn')?.addEventListener('click',()=>openDebtForm());
+    $$('.debt-edit',root).forEach(b=>b.addEventListener('click',()=>openDebtForm(b.dataset.id)));
+    $$('.debt-pay',root).forEach(b=>b.addEventListener('click',()=>openTransactionForm(null,{type:'debt',debtId:b.dataset.id})));
+  }
+  function goalMini(goal){
+    const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
+    return `<div class="goal-card" style="margin-bottom:9px"><div class="goal-top"><strong>${escapeHtml(goal.name)}</strong><div class="amount">${money(saved)} / ${money(target)}</div></div><div class="progress"><span style="width:${pct}%;background:var(--savings)"></span></div></div>`;
+  }
+  function goalFull(goal){
+    const saved=goalSaved(goal), target=num(goal.target), pct=target?Math.min(100,(saved/target)*100):0;
+    return `<div class="goal-card"><div class="goal-top"><div><strong>${escapeHtml(goal.name)}</strong><div class="small muted">${pct.toFixed(0)}% complete</div></div><div class="amount">${money(saved)} / ${money(target)}</div></div><div class="progress"><span style="width:${pct}%;background:var(--savings)"></span></div><div class="goal-actions"><button class="mini-action goal-add" data-id="${goal.id}" type="button">+ Add savings</button><button class="mini-action goal-edit" data-id="${goal.id}" type="button">Edit</button></div></div>`;
+  }
+  function debtFull(debt){
+    const start=num(debt.startingBalance), remaining=debtRemaining(debt), paid=Math.max(0,start-remaining);
+    const pct=start>0?Math.min(100,(paid/start)*100):100;
+    return `<div class="debt-card"><div class="debt-top"><div class="icon-label">${duck('debt','tiny')}<div><strong>${escapeHtml(debt.name)}</strong><div class="small muted">${pct.toFixed(0)}% paid off${num(debt.minimumPayment)>0?` • Min ${money(debt.minimumPayment)}`:''}</div></div></div><div class="amount">${money(remaining)} left</div></div><div class="progress"><span style="width:${pct}%;background:var(--debt)"></span></div><div class="goal-actions"><button class="mini-action debt-pay" data-id="${debt.id}" type="button">+ Payment</button><button class="mini-action debt-edit" data-id="${debt.id}" type="button">Edit</button></div></div>`;
+  }
+
+
+  // Each Sunday–Saturday week has its own independent grocery budget and meal plan.
+  // Meals are planning estimates; they do not become real transactions automatically.
+  const SHOPPING_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function weekStartISO(iso){
+    const date=parseDate(iso)||parseDate(todayISO());
+    date.setDate(date.getDate()-date.getDay());
+    return toISO(date);
+  }
+  function shiftISO(iso,days){const d=parseDate(iso); d.setDate(d.getDate()+days); return toISO(d);}
+  let shoppingView='meals';
+  function blankShoppingWeek(){return {budget:null,days:Array.from({length:7},()=>({meals:[]}))};}
+  function viewShoppingWeek(){return state.shoppingWeeks?.[shoppingWeekStart]||blankShoppingWeek();}
+  function editShoppingWeek(){
+    if(!state.shoppingWeeks || typeof state.shoppingWeeks!=='object') state.shoppingWeeks={};
+    if(!state.shoppingWeeks[shoppingWeekStart]) state.shoppingWeeks[shoppingWeekStart]=blankShoppingWeek();
+    return state.shoppingWeeks[shoppingWeekStart];
+  }
+  function shoppingDayMeals(day){return viewShoppingWeek().days?.[day]?.meals||[];}
+  function editShoppingDay(day){
+    const week=editShoppingWeek();
+    if(!Array.isArray(week.days)) week.days=blankShoppingWeek().days;
+    if(!week.days[day]) week.days[day]={meals:[]};
+    if(!Array.isArray(week.days[day].meals)) week.days[day].meals=[];
+    return week.days[day].meals;
+  }
+  const shoppingItemCents=item=>Math.round(num(item.cost)*100);
+  const shoppingMealCents=meal=>(meal.items||[]).reduce((sum,item)=>sum+shoppingItemCents(item),0);
+  const shoppingDayCents=day=>shoppingDayMeals(day).reduce((sum,meal)=>sum+shoppingMealCents(meal),0);
+  const shoppingWeekCents=()=>SHOPPING_DAYS.reduce((sum,_,i)=>sum+shoppingDayCents(i),0);
+  function shoppingHomeCard(){
+    const week=viewShoppingWeek();
+    const total=shoppingWeekCents()/100;
+    const budget=week.budget===null||week.budget===undefined?'No budget yet':money(week.budget)+' budget';
+    return `<div class="card shopping-entry">
+      ${duck('shopping')}
+      <div class="shopping-entry-copy"><strong>Shopping & Meals</strong><span>Plan Sun–Sat meals, add ingredients and prices. ${money(total)} planned · ${budget}</span></div>
+      <button class="shopping-entry-button" type="button" id="homeShoppingBtn">Open →</button>
+    </div>`;
+  }
+  function renderShopping(){
+    const root=$('#page-shopping');
+    const week=viewShoppingWeek();
+    const isSet=week.budget!==null&&week.budget!==undefined;
+    const budgetCents=Math.round(num(week.budget)*100);
+    const costCents=shoppingWeekCents();
+    const leftCents=budgetCents-costCents;
+    const progress=budgetCents>0?Math.min(100,100*costCents/budgetCents):(costCents>0?100:0);
+    const isOver=isSet && costCents>budgetCents;
+    const range=`${formatDate(shoppingWeekStart)} – ${formatDate(shiftISO(shoppingWeekStart,6))}`;
+    const currentWeek=shoppingWeekStart===weekStartISO(todayISO());
+    const dayRows=SHOPPING_DAYS.map((name,i)=>{
+      const meals=shoppingDayMeals(i);
+      const date=shiftISO(shoppingWeekStart,i);
+      const names=meals.map(m=>m.name).filter(Boolean).join(' · ');
+      const cost=shoppingDayCents(i);
+      return `<button class="shopping-day-row ${date===todayISO()?'today':''}" type="button" data-shopping-day="${i}" aria-label="Build meals for ${name}, ${formatDate(date)}">
+        <span class="shopping-day-icon"><img src="${['images/Burger-duck.PNG','images/Standard-duck.PNG','images/Lemon-duck.PNG','images/Fancy-duck.PNG'][i%4]}" alt=""></span>
+        <span class="shopping-day-text"><strong>${name} <span style="display:inline;color:var(--muted);font-weight:600">${formatDate(date)}</span></strong><span>${meals.length?escapeHtml(names||'Unnamed meals'):'Tap to build meals + add costs'}</span></span>
+        <span class="shopping-day-total">${money(cost/100)}<small>${meals.length} meal${meals.length===1?'':'s'}</small></span>
+        <span class="shopping-day-arrow" aria-hidden="true">›</span>
+      </button>`;
+    }).join('');
+    const shoppingItems=[];
+    SHOPPING_DAYS.forEach((day,di)=>shoppingDayMeals(di).forEach(meal=>(meal.items||[]).forEach(item=>shoppingItems.push({di,day,meal,item}))));
+    const checked=shoppingItems.filter(x=>x.item.checked).length;
+    const wasOpen=$('#shoppingChecklist')?.open||false;
+    root.innerHTML=`
+      <div class="page-title"><div class="shopping-heading">${duck('food')}<div><h2>Shopping & Meals</h2><div class="small muted">A cozy grocery plan, one week at a time</div></div></div><button class="shopping-back" id="shoppingBack" type="button">← Home</button></div>
+      <div class="card shopping-week-nav">
+        <button class="mini-action" id="shoppingPrev" aria-label="Previous week" type="button">‹</button>
+        <div class="shopping-week-label">${range}<small>${currentWeek?'This week':'Sunday – Saturday'}</small></div>
+        <button class="mini-action" id="shoppingNext" aria-label="Next week" type="button">›</button>
+      </div>
+      <div class="card shopping-summary">
+        <div class="shopping-budget-line"><div><div class="eyebrow">Weekly grocery budget</div><div class="shopping-budget-value">${isSet?money(week.budget):'Not set'}</div></div><button class="btn" type="button" id="shoppingBudgetBtn">${isSet?'Edit':'Set'} budget</button></div>
+        <div class="progress ${isOver?'over':''}" role="progressbar" aria-label="Weekly planned grocery costs" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><span style="width:${progress}%"></span></div>
+        <div class="shopping-metrics"><div><span>Planned total</span><strong>${money(costCents/100)}</strong></div><div><span>${isSet?(isOver?'Over budget':'Left to spend'):'Remaining'}</span><strong>${isSet?money(Math.abs(leftCents)/100):'—'}</strong></div></div>
+      </div>
+      <div class="shopping-view-tabs"><button class="${shoppingView==='meals'?'active':''}" type="button" data-shopping-view="meals">Meal plan</button><button class="${shoppingView==='list'?'active':''}" type="button" data-shopping-view="list">Grocery list (${checked}/${shoppingItems.length})</button></div>
+      ${shoppingView==='meals'?`<div class="card shopping-day-card"><div class="shopping-days">${dayRows}</div></div><div class="one-screen-note">Estimated costs only. Buying groceries won't automatically subtract from your account balance.</div>`:`<div class="card shopping-list-card"><div class="small muted" style="margin:0 0 9px">Tap to check items off as you shop. Items in more than one meal appear separately.</div><div id="shoppingChecklist">
+        ${shoppingItems.length?shoppingItems.map(({di,day,meal,item})=>`<label class="shopping-check-row ${item.checked?'checked':''}"><input type="checkbox" data-shop-check="${escapeHtml(item.id)}" data-shop-day="${di}" data-shop-meal="${escapeHtml(meal.id)}" ${item.checked?'checked':''}><span><span class="shopping-check-label">${escapeHtml(item.name)}</span><small>${day} • ${escapeHtml(meal.name)}</small></span><b>${money(shoppingItemCents(item)/100)}</b></label>`).join(''):'<div class="small muted" style="margin-top:12px">Add items to your meals and they’ll appear here!</div>'}
+      </div></div>`}`;
+    $('#shoppingBack').addEventListener('click',()=>setTab('home'));
+    $('#shoppingPrev').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,-7);renderAll();});
+    $('#shoppingNext').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,7);renderAll();});
+    $('#shoppingThisWeek')?.addEventListener('click',()=>{shoppingWeekStart=weekStartISO(todayISO());renderAll();});
+    $$('[data-shopping-view]',root).forEach(b=>b.addEventListener('click',()=>{shoppingView=b.dataset.shoppingView;renderShopping();}));
+    $('#shoppingBudgetBtn').addEventListener('click',openShoppingBudget);
+    $$('[data-shopping-day]',root).forEach(b=>b.addEventListener('click',()=>openShoppingDay(Number(b.dataset.shoppingDay))));
+    $$('[data-shop-check]',root).forEach(input=>input.addEventListener('change',()=>{
+      const meal=editShoppingDay(Number(input.dataset.shopDay)).find(m=>m.id===input.dataset.shopMeal);
+      const item=meal?.items?.find(x=>x.id===input.dataset.shopCheck);
+      if(item){item.checked=input.checked;saveState();}
+    }));
+  }
+  function openShoppingBudget(){
+    const week=viewShoppingWeek();
+    const val=week.budget===null||week.budget===undefined?'':escapeHtml(week.budget);
+    openSheet('Weekly Shopping Budget',`<div class="small muted" style="margin-bottom:12px">${formatDate(shoppingWeekStart)} – ${formatDate(shiftISO(shoppingWeekStart,6))}</div>
+      <form class="form-grid" id="shoppingBudgetForm"><div class="field"><label for="shoppingBudgetInput">How much can I spend this week?</label><input id="shoppingBudgetInput" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" placeholder="100.00" required value="${val}"></div><div class="help">This is separate from your paycheck budget. It's just for estimating meal shopping costs.</div><button class="btn primary full" type="submit">Save weekly budget</button></form>`);
+    $('#shoppingBudgetForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const v=Number($('#shoppingBudgetInput').value);
+      if(!Number.isFinite(v)||v<0||v>10000000){showToast('Enter a valid weekly budget');return;}
+      editShoppingWeek().budget=Math.round(v*100)/100;
+      closeSheet();saveState('Shopping budget saved');
+    });
+  }
+  function openShoppingDay(dayIndex,restoreScroll=null){
+    if(!Number.isInteger(dayIndex)||dayIndex<0||dayIndex>6) return;
+    const meals=shoppingDayMeals(dayIndex);
+    const dayName=SHOPPING_DAYS[dayIndex];
+    const html=`<div class="notice"><strong>${formatDate(shiftISO(shoppingWeekStart,dayIndex),{weekday:'long',month:'short',day:'numeric'})}</strong><br>${money(shoppingDayCents(dayIndex)/100)} in planned ingredients across ${meals.length} meal${meals.length===1?'':'s'}.</div>
+      ${meals.length?'':`<div class="empty"><div class="big">${duck('food')}</div><strong>What’s cooking?</strong><div class="small">Add a meal below, then give it ingredients and estimated prices.</div></div>`}
+      ${meals.map(meal=>`<div class="shopping-meal">
+        <div class="shopping-meal-head"><div><strong>${escapeHtml(meal.name)}</strong><small>${(meal.items||[]).length} items · ${money(shoppingMealCents(meal)/100)}</small></div><button class="mini-action shopping-meal-edit" data-meal="${escapeHtml(meal.id)}" type="button">Edit meal</button></div>
+        ${(meal.items||[]).map(item=>`<div class="shopping-item-row"><span>${escapeHtml(item.name)}</span><b>${money(shoppingItemCents(item)/100)}</b><button class="mini-action shopping-item-edit" data-meal="${escapeHtml(meal.id)}" data-item="${escapeHtml(item.id)}" type="button" aria-label="Edit ${escapeHtml(item.name)}">Edit</button></div>`).join('')}
+        <form class="shopping-inline-form shopping-add-item" data-meal="${escapeHtml(meal.id)}">
+          <div><label>Ingredient / item</label><input name="itemName" maxlength="80" placeholder="e.g. Chicken breast" required></div>
+          <div><label>Cost ($)</label><input name="itemCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" placeholder="0.00" required></div>
+          <button class="btn soft" type="submit">+ Add item</button>
+        </form>
+      </div>`).join('')}
+      <div class="shopping-new-meal"><div style="font-weight:900;font-size:14px">+ Add a meal</div>
+        <form class="shopping-inline-form" id="shoppingNewMealForm"><input id="shoppingMealName" aria-label="Meal name" maxlength="70" placeholder="Breakfast, spaghetti night…" required><button class="btn primary" type="submit">Add meal</button></form>
+      </div>`;
+    openSheet(`${dayName} · Build Meals`,html);
+    if(restoreScroll!==null) $('.sheet').scrollTop=restoreScroll;
+    $('#shoppingNewMealForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const name=$('#shoppingMealName').value.trim();
+      if(!name){showToast('Enter a meal name');return;}
+      editShoppingDay(dayIndex).push({id:uid(),name,items:[]});
+      saveState('Meal added');
+      openShoppingDay(dayIndex,Number.MAX_SAFE_INTEGER);
+    });
+    $$('.shopping-add-item').forEach(form=>form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const name=form.elements.itemName.value.trim();
+      const cost=Number(form.elements.itemCost.value);
+      if(!name||!Number.isFinite(cost)||cost<0||cost>10000000){showToast('Enter an item and a valid cost');return;}
+      const meal=editShoppingDay(dayIndex).find(m=>m.id===form.dataset.meal);
+      if(!meal) return;
+      if(!Array.isArray(meal.items)) meal.items=[];
+      meal.items.push({id:uid(),name,cost:Math.round(cost*100)/100,checked:false});
+      const scroll=$('.sheet').scrollTop;
+      saveState('Item added');
+      openShoppingDay(dayIndex,scroll);
+      const next=$(`.shopping-add-item[data-meal="${form.dataset.meal}"] input[name="itemName"]`);
+      next?.focus({preventScroll:true});
+    }));
+    $$('.shopping-meal-edit').forEach(btn=>btn.addEventListener('click',()=>openShoppingMealEdit(dayIndex,btn.dataset.meal)));
+    $$('.shopping-item-edit').forEach(btn=>btn.addEventListener('click',()=>openShoppingItemEdit(dayIndex,btn.dataset.meal,btn.dataset.item)));
+  }
+  function openShoppingMealEdit(dayIndex,mealId){
+    const meal=shoppingDayMeals(dayIndex).find(m=>m.id===mealId);if(!meal)return;
+    openSheet('Edit Meal',`<button class="shopping-back" id="shoppingDayReturn" type="button">← ${SHOPPING_DAYS[dayIndex]}</button>
+      <form id="shoppingEditMealForm" class="form-grid"><div class="field"><label for="shoppingEditMealName">Meal name</label><input id="shoppingEditMealName" maxlength="70" value="${escapeHtml(meal.name)}" required></div><button class="btn primary full" type="submit">Save meal name</button><button class="btn danger full" id="shoppingDeleteMeal" type="button">Delete this meal and its items</button></form>`);
+    $('#shoppingDayReturn').addEventListener('click',()=>openShoppingDay(dayIndex));
+    $('#shoppingEditMealForm').addEventListener('submit',e=>{e.preventDefault();const name=$('#shoppingEditMealName').value.trim();if(!name)return;meal.name=name;saveState('Meal updated');openShoppingDay(dayIndex);});
+    $('#shoppingDeleteMeal').addEventListener('click',()=>{if(confirm(`Delete ${meal.name} and all its items?`)){const meals=editShoppingDay(dayIndex);const index=meals.findIndex(m=>m.id===mealId);if(index>=0)meals.splice(index,1);saveState('Meal deleted');openShoppingDay(dayIndex);}});
+  }
+  function openShoppingItemEdit(dayIndex,mealId,itemId){
+    const meal=shoppingDayMeals(dayIndex).find(m=>m.id===mealId);
+    const item=meal?.items?.find(x=>x.id===itemId);if(!item)return;
+    openSheet('Edit Ingredient',`<button class="shopping-back" id="shoppingDayReturn" type="button">← ${SHOPPING_DAYS[dayIndex]}</button>
+      <form id="shoppingEditItemForm" class="form-grid"><div class="field"><label for="shoppingEditItemName">Ingredient / item</label><input id="shoppingEditItemName" maxlength="80" value="${escapeHtml(item.name)}" required></div><div class="field"><label for="shoppingEditItemCost">Estimated cost ($)</label><input id="shoppingEditItemCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" value="${escapeHtml(item.cost)}" required></div><button class="btn primary full" type="submit">Save item</button><button class="btn danger full" id="shoppingDeleteItem" type="button">Delete this item</button></form>`);
+    $('#shoppingDayReturn').addEventListener('click',()=>openShoppingDay(dayIndex));
+    $('#shoppingEditItemForm').addEventListener('submit',e=>{
+      e.preventDefault();const name=$('#shoppingEditItemName').value.trim();const cost=Number($('#shoppingEditItemCost').value);
+      if(!name||!Number.isFinite(cost)||cost<0||cost>10000000){showToast('Enter an item and a valid cost');return;}
+      item.name=name;item.cost=Math.round(cost*100)/100;
+      saveState('Item updated');openShoppingDay(dayIndex);
+    });
+    $('#shoppingDeleteItem').addEventListener('click',()=>{if(confirm(`Remove ${item.name} from the meal?`)){meal.items=meal.items.filter(x=>x.id!==itemId);saveState('Item removed');openShoppingDay(dayIndex);}});
+  }
+
+  function setTab(tab){
+    if(simpleMode() && (tab==='planner'||tab==='transactions')) tab='home';
+    currentTab=tab;
+    $$('.page').forEach(p=>p.classList.toggle('active',p.dataset.page===tab));
+    $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    $('#quickAddBtn').classList.toggle('hidden',tab==='shopping'||simpleMode());
+    const pane=$(`.page[data-page="${tab}"]`); if(pane) pane.scrollTop=0;
+  }
+
+  function openSheet(title,html){
+    $('#sheetTitle').textContent=title; $('#sheetContent').innerHTML=html;
+    $('#sheetBackdrop').classList.add('open'); $('#sheetBackdrop').setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  }
+  function closeSheet(){
+    $('#sheetBackdrop').classList.remove('open'); $('#sheetBackdrop').setAttribute('aria-hidden','true');
+    document.body.style.overflow=''; $('#sheetContent').innerHTML='';
+  }
+
+  function openTransactionForm(id=null,preset={}){
+    const existing=id?state.transactions.find(t=>t.id===id):null;
+    const plan=currentPlan();
+    let type=existing?.type||preset.type||'expense';
+    let category=existing?.category||preset.category||(type==='expense'?'food':type==='income'?'income':type);
+    const plans=state.plans.slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)));
+    openSheet(existing?'Edit Transaction':'Add Transaction',`
+      <form id="txForm" class="form-grid">
+        <div class="field"><label>Type</label><div class="segmented" id="txTypePicker">
+          ${['expense','income','savings','debt'].map(t=>`<button type="button" data-type="${t}" class="${type===t?'active':''}">${t==='expense'?'Expense':t==='income'?'Income':t==='savings'?'Savings':'Debt'}</button>`).join('')}
+        </div></div>
+        <div class="field"><label for="txAmount">Amount</label><input id="txAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${existing?escapeHtml(existing.amount):''}" placeholder="0.00"></div>
+        <div class="field" id="categoryField"><label>Category duck</label><div class="category-picker" id="categoryPicker">${['food','fun','bills','shopping'].map(c=>`<button type="button" class="cat-choice ${category===c?'selected':''}" data-category="${c}">${duck(c)}<span>${CATEGORIES[c].label}</span></button>`).join('')}</div></div>
+        <div class="field hidden" id="goalField"><label for="txGoal">Savings goal</label><select id="txGoal"><option value="">No specific goal</option>${state.goals.map(g=>`<option value="${g.id}" ${(existing?.goalId||preset.goalId)===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}</select></div>
+        <div class="field hidden" id="debtField"><label for="txDebt">Debt</label><select id="txDebt"><option value="">Choose debt</option>${state.debts.map(d=>`<option value="${d.id}" ${(existing?.debtId||preset.debtId)===d.id?'selected':''}>${escapeHtml(d.name)}</option>`).join('')}</select>${state.debts.length?'':'<div class="help">Add a debt from the Goals tab first.</div>'}</div>
+        <div class="field hidden" id="billField"><label for="txBill">Bill</label><select id="txBill"><option value="">General bill / no link</option>${state.bills.map(b=>`<option value="${b.id}" ${existing?.billId===b.id?'selected':''}>${escapeHtml(b.name)}</option>`).join('')}</select></div>
+        <div class="field"><label for="txNote">What was it?</label><input id="txNote" maxlength="80" value="${escapeHtml(existing?.note||'')}" placeholder="Lunch, Target, refund…"></div>
+        <div class="field-row"><div class="field"><label for="txDate">Date</label><input id="txDate" type="date" required value="${escapeHtml(existing?.date||todayISO())}"></div><div class="field"><label for="txPlan">Paycheck plan</label><select id="txPlan"><option value="">No plan</option>${plans.map(p=>`<option value="${p.id}" ${(existing?.planId||plan?.id)===p.id?'selected':''}>${escapeHtml(p.name||formatDate(p.startDate))}</option>`).join('')}</select></div></div>
+        <button class="btn primary full" type="submit">${existing?'Save changes':'Add transaction'}</button>
+        ${existing?'<button class="btn danger full" id="deleteTxBtn" type="button">Delete transaction</button>':''}
+      </form>`);
+    const setType=(newType)=>{
+      type=newType;
+      $$('#txTypePicker button').forEach(b=>b.classList.toggle('active',b.dataset.type===type));
+      $('#categoryField').classList.toggle('hidden',type!=='expense');
+      $('#goalField').classList.toggle('hidden',type!=='savings');
+      $('#debtField').classList.toggle('hidden',type!=='debt');
+      if(type==='income') category='income';
+      if(type==='savings') category='savings';
+      if(type==='debt') category='debt';
+      $('#billField').classList.toggle('hidden',!(type==='expense'&&category==='bills'));
+    };
+    $$('#txTypePicker button').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+    $$('#categoryPicker .cat-choice').forEach(b=>b.addEventListener('click',()=>{
+      category=b.dataset.category; $$('#categoryPicker .cat-choice').forEach(x=>x.classList.toggle('selected',x===b));
+      $('#billField').classList.toggle('hidden',category!=='bills'||type!=='expense');
+    }));
+    setType(type);
+    $('#txForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const amount=num($('#txAmount').value); if(amount<=0){showToast('Enter an amount greater than $0');return;}
+      if(type==='debt' && !$('#txDebt').value){showToast('Choose which debt this payment is for');return;}
+      const record={
+        id:existing?.id||uid(), type, category, amount,
+        note:$('#txNote').value.trim(), date:$('#txDate').value||todayISO(), planId:$('#txPlan').value||'',
+        goalId:type==='savings'?$('#txGoal').value:'', debtId:type==='debt'?$('#txDebt').value:'',
+        billId:(type==='expense'&&category==='bills')?$('#txBill').value:'',
+        billDueDate:existing?.billDueDate||''
+      };
+      if(existing) state.transactions=state.transactions.map(t=>t.id===existing.id?record:t); else state.transactions.push(record);
+      closeSheet(); saveState(existing?'Transaction updated':'Transaction added');
+    });
+    $('#deleteTxBtn')?.addEventListener('click',()=>{
+      if(confirm('Delete this transaction?')){state.transactions=state.transactions.filter(t=>t.id!==existing.id);closeSheet();saveState('Transaction deleted');}
+    });
+  }
+
+  function openBillForm(id=null){
+    const b=id?state.bills.find(x=>x.id===id):null;
+    const initialFrequency=billFrequency(b);
+    const initialDueDay=String(b?.dueDay||'1');
+    const initialAnchor=b?.anchorDate||todayISO();
+    const dayOptions=Array.from({length:31},(_,i)=>{
+      const day=i+1;
+      return `<option value="${day}" ${initialDueDay===String(day)?'selected':''}>${ordinal(day)} day of each month</option>`;
+    }).join('')+`<option value="last" ${initialDueDay==='last'?'selected':''}>Last day of each month</option>`;
+
+    openSheet(b?'Edit Bill':'Add Bill',`
+      <form id="billForm" class="form-grid">
+        <div class="field"><label for="billName">Bill name</label><input id="billName" maxlength="60" required value="${escapeHtml(b?.name||'')}" placeholder="Rent, phone, Netflix…"></div>
+        <div class="field"><label for="billAmount">Amount</label><input id="billAmount" inputmode="decimal" type="number" min="0" step="0.01" required value="${b?escapeHtml(b.amount):''}" placeholder="0.00"></div>
+
+        <div class="field">
+          <label for="billFrequency">Occurrence</label>
+          <select id="billFrequency">
+            <option value="monthly" ${initialFrequency==='monthly'?'selected':''}>Monthly</option>
+            <option value="biweekly" ${initialFrequency==='biweekly'?'selected':''}>Biweekly (every 2 weeks)</option>
+            <option value="quarterly" ${initialFrequency==='quarterly'?'selected':''}>Quarterly (every 3 months)</option>
+            <option value="semiannual" ${initialFrequency==='semiannual'?'selected':''}>Every 6 months</option>
+            <option value="yearly" ${initialFrequency==='yearly'?'selected':''}>Yearly</option>
+            <option value="once" ${initialFrequency==='once'?'selected':''}>One-time bill</option>
+          </select>
+          <div class="help">How often this bill repeats.</div>
+        </div>
+
+        <div id="billScheduleFields"></div>
+
+        <label class="notice" style="display:flex;gap:9px;align-items:center"><input id="billAutopay" type="checkbox" ${b?.autopay?'checked':''}> <span><strong>Autopay</strong><br><span class="small">Just a label—this app never connects to your bank.</span></span></label>
+        <button class="btn primary full" type="submit">${b?'Save bill':'Add bill'}</button>
+        ${b?'<button class="btn danger full" id="deleteBillBtn" type="button">Delete bill</button>':''}
+      </form>`);
+
+    const renderScheduleFields=()=>{
+      const frequency=$('#billFrequency').value;
+      const holder=$('#billScheduleFields');
+
+      if(frequency==='monthly'){
+        holder.innerHTML=`
+          <div class="field">
+            <label for="billDay">Due date</label>
+            <select id="billDay">${dayOptions}</select>
+            <div class="help">Choose the 1st, 15th, last day of the month, or whichever day this bill is normally due.</div>
+          </div>`;
+        return;
+      }
+
+      const labels={
+        biweekly:['Due date','Choose one due date and the app will repeat it every 2 weeks from there.'],
+        quarterly:['Due date','The app will repeat this bill every 3 months from this date.'],
+        semiannual:['Due date','The app will repeat this bill every 6 months from this date.'],
+        yearly:['Due date','The month and day will repeat every year.'],
+        once:['Due date','This bill will only appear once.']
+      };
+      const [label,help]=labels[frequency]||labels.once;
+      holder.innerHTML=`
+        <div class="field">
+          <label for="billAnchorDate">${label}</label>
+          <input id="billAnchorDate" type="date" required value="${escapeHtml(initialAnchor)}">
+          <div class="help">${help}</div>
+        </div>`;
+    };
+
+    $('#billFrequency').addEventListener('change',renderScheduleFields);
+    renderScheduleFields();
+
+    $('#billForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const amount=num($('#billAmount').value);
+      const frequency=$('#billFrequency').value;
+      if(amount<=0){showToast('Enter a bill amount');return;}
+
+      const rec={
+        id:b?.id||uid(),
+        name:$('#billName').value.trim(),
+        amount,
+        frequency,
+        autopay:$('#billAutopay').checked,
+        createdOn:b?.createdOn||todayISO()
+      };
+
+      if(frequency==='monthly'){
+        rec.dueDay=$('#billDay').value||'1';
+      }else{
+        const anchorDate=$('#billAnchorDate').value;
+        if(!anchorDate){showToast('Choose a due date');return;}
+        rec.anchorDate=anchorDate;
+      }
+
+      if(b) state.bills=state.bills.map(x=>x.id===b.id?rec:x); else state.bills.push(rec);
+      closeSheet(); saveState(b?'Bill updated':'Bill added');
+    });
+    $('#deleteBillBtn')?.addEventListener('click',()=>{if(confirm('Delete this bill? Existing transactions will stay.')){state.bills=state.bills.filter(x=>x.id!==b.id);closeSheet();saveState('Bill deleted');}});
+  }
+  function markBillPaid(billId,dueDate){
+    const b=state.bills.find(x=>x.id===billId); if(!b) return;
+    if(isBillOccurrencePaid(billId,dueDate)){showToast('That bill is already marked paid');return;}
+    const finish=()=>{
+      const plan=currentPlan();
+      state.transactions.push({id:uid(),type:'expense',category:'bills',amount:num(b.amount),note:b.name,date:todayISO(),planId:plan?.id||'',goalId:'',debtId:'',billId:b.id,billDueDate:dueDate});
+      closeSheet();saveState(`${b.name} marked paid`);
+    };
+    if(simpleMode() && state.simple.balance!==null){
+      openSheet('Bill paid • check your balance',`<form id="paidBalanceForm" class="form-grid">
+        <div class="notice"><strong>${escapeHtml(b.name)}: ${money(b.amount)}</strong><div style="margin-top:6px">Once marked paid, this bill won't be reserved again for this due date. Enter your <strong>actual remaining account balance</strong> after the payment, so your spending estimate stays accurate.</div></div>
+        <div class="field"><label for="paidBalance">Money in your account now ($)</label><input id="paidBalance" type="number" min="-100000000" max="100000000" step="0.01" inputmode="decimal" required value="${escapeHtml(state.simple.balance)}"><div class="help">If your account balance already reflects the payment, keep that balance. Do not subtract it twice.</div></div>
+        <button class="btn primary full" type="submit">Save balance & mark paid</button></form>`);
+      $('#paidBalanceForm').addEventListener('submit',e=>{e.preventDefault();const amount=Number($('#paidBalance').value);if(!Number.isFinite(amount)||Math.abs(amount)>100000000){showToast('Enter a valid balance');return;}state.simple.balance=Math.round(amount*100)/100;state.simple.balanceUpdatedAt=new Date().toLocaleString();finish();});
+      return;
+    }
+    finish();
+  }
+
+  function openPlanForm(id=null,forceNew=false){
+    const p=(!forceNew&&id)?state.plans.find(x=>x.id===id):null;
+    const start=p?.startDate||todayISO();
+    const next=p?.nextPayDate||'';
+    openSheet(p?'Edit Paycheck Plan':'New Paycheck Plan',`
+      <form id="planForm" class="form-grid">
+        <div class="field"><label for="planName">Plan name</label><input id="planName" maxlength="60" value="${escapeHtml(p?.name||'')}" placeholder="Aug 31 Paycheck"></div>
+        <div class="field"><label for="planIncome">Paycheck amount</label><input id="planIncome" inputmode="decimal" type="number" min="0" step="0.01" required value="${p?escapeHtml(p.income):''}" placeholder="0.00"><div class="help">Put your main paycheck here. Use an Income transaction later for refunds or extra money.</div></div>
+        <div class="field-row"><div class="field"><label for="planStart">Pay date</label><input id="planStart" type="date" required value="${start}"></div><div class="field"><label for="planNext">Next payday</label><input id="planNext" type="date" required value="${next}"></div></div>
+        <div class="divider"></div>
+        ${BUDGET_CATEGORIES.map(c=>`<div class="field"><label class="icon-label" for="budget_${c}">${duck(c,'tiny')}<span>${CATEGORIES[c].label}</span></label><input id="budget_${c}" inputmode="decimal" type="number" min="0" step="0.01" value="${p?escapeHtml(p.budgets?.[c]||0):'0'}"></div>`).join('')}
+        <div class="notice" id="planMath">Enter your paycheck and category amounts to see what’s unassigned.</div>
+        <button class="btn primary full" type="submit">${p?'Save plan':'Start this paycheck plan'}</button>
+        ${p?'<button class="btn danger full" id="deletePlanBtn" type="button">Delete plan</button>':''}
+      </form>`);
+    const updateMath=()=>{
+      const income=num($('#planIncome').value); const allocated=BUDGET_CATEGORIES.reduce((s,c)=>s+num($(`#budget_${c}`).value),0); const left=income-allocated;
+      $('#planMath').innerHTML=`${coinIcon()} <strong>${money(left)}</strong> ${left>=0?'unassigned':'over-planned'} from this paycheck.`;
+      $('#planMath').classList.toggle('danger',left<0);
+    };
+    ['planIncome',...BUDGET_CATEGORIES.map(c=>'budget_'+c)].forEach(id2=>$(`#${id2}`)?.addEventListener('input',updateMath)); updateMath();
+    $('#planForm').addEventListener('submit',e=>{
+      e.preventDefault(); const income=num($('#planIncome').value), startDate=$('#planStart').value, nextPayDate=$('#planNext').value;
+      if(income<=0){showToast('Enter your paycheck amount');return;}
+      if(!startDate||!nextPayDate||parseDate(nextPayDate)<=parseDate(startDate)){showToast('Next payday must be after this payday');return;}
+      const budgets={}; BUDGET_CATEGORIES.forEach(c=>budgets[c]=num($(`#budget_${c}`).value));
+      const rec={id:p?.id||uid(),name:$('#planName').value.trim()||`${formatDate(startDate)} Paycheck`,income,startDate,nextPayDate,budgets,active:true,createdAt:p?.createdAt||Date.now()};
+      state.plans.forEach(x=>x.active=false);
+      if(p) state.plans=state.plans.map(x=>x.id===p.id?rec:x); else state.plans.push(rec);
+      closeSheet(); setTab('planner'); saveState(p?'Plan updated':'Paycheck plan started');
+    });
+    $('#deletePlanBtn')?.addEventListener('click',()=>{if(confirm('Delete this paycheck plan? Transactions will stay in your history.')){state.plans=state.plans.filter(x=>x.id!==p.id); if(state.plans.length&&!state.plans.some(x=>x.active)) state.plans[state.plans.length-1].active=true;closeSheet();saveState('Plan deleted');}});
+  }
+
+  function openGoalForm(id=null){
+    const g=id?state.goals.find(x=>x.id===id):null;
+    openSheet(g?'Edit Goal':'New Savings Goal',`
+      <form id="goalForm" class="form-grid">
+        <div class="field"><label for="goalName">Goal name</label><input id="goalName" required maxlength="60" value="${escapeHtml(g?.name||'')}" placeholder="Emergency fund, trip…"></div>
+        <div class="field-row"><div class="field"><label for="goalTarget">Target</label><input id="goalTarget" type="number" inputmode="decimal" min="0" step="0.01" required value="${g?escapeHtml(g.target):''}" placeholder="1000"></div><div class="field"><label for="goalStart">Already saved</label><input id="goalStart" type="number" inputmode="decimal" min="0" step="0.01" value="${g?escapeHtml(g.startingSaved||0):'0'}"></div></div>
+        <button class="btn primary full" type="submit">${g?'Save goal':'Create goal'}</button>
+        ${g?'<button class="btn danger full" id="deleteGoalBtn" type="button">Delete goal</button>':''}
+      </form>`);
+    $('#goalForm').addEventListener('submit',e=>{e.preventDefault(); const target=num($('#goalTarget').value);if(target<=0){showToast('Enter a goal amount');return;}const rec={id:g?.id||uid(),name:$('#goalName').value.trim(),target,startingSaved:num($('#goalStart').value)};if(g)state.goals=state.goals.map(x=>x.id===g.id?rec:x);else state.goals.push(rec);closeSheet();saveState(g?'Goal updated':'Goal created');});
+    $('#deleteGoalBtn')?.addEventListener('click',()=>{if(confirm('Delete this goal? Savings transactions will remain in your history.')){state.goals=state.goals.filter(x=>x.id!==g.id);closeSheet();saveState('Goal deleted');}});
+  }
+
+  function openDebtForm(id=null){
+    const d=id?state.debts.find(x=>x.id===id):null;
+    openSheet(d?'Edit Debt':'Add Debt',`
+      <form id="debtForm" class="form-grid">
+        <div class="field"><label for="debtName">Nickname</label><input id="debtName" required maxlength="60" value="${escapeHtml(d?.name||'')}" placeholder="Card A, car loan…"><div class="help">Use a nickname only—never enter account or card numbers.</div></div>
+        <div class="field-row"><div class="field"><label for="debtBalance">Current balance</label><input id="debtBalance" type="number" inputmode="decimal" min="0" step="0.01" required value="${d?escapeHtml(d.startingBalance):''}" placeholder="0.00"></div><div class="field"><label for="debtMin">Minimum payment</label><input id="debtMin" type="number" inputmode="decimal" min="0" step="0.01" value="${d?escapeHtml(d.minimumPayment||0):'0'}"></div></div>
+        <div class="notice warn">Debt balances here are a personal tracker only. Interest and new charges are not added automatically, so you can edit the balance whenever you want to resync it.</div>
+        <button class="btn primary full" type="submit">${d?'Save debt':'Add debt'}</button>
+        ${d?'<button class="btn danger full" id="deleteDebtBtn" type="button">Delete debt</button>':''}
+      </form>`);
+    $('#debtForm').addEventListener('submit',e=>{e.preventDefault();const bal=num($('#debtBalance').value);const rec={id:d?.id||uid(),name:$('#debtName').value.trim(),startingBalance:bal,minimumPayment:num($('#debtMin').value)};if(d)state.debts=state.debts.map(x=>x.id===d.id?rec:x);else state.debts.push(rec);closeSheet();saveState(d?'Debt updated':'Debt added');});
+    $('#deleteDebtBtn')?.addEventListener('click',()=>{if(confirm('Delete this debt tracker? Debt payment transactions will stay.')){state.debts=state.debts.filter(x=>x.id!==d.id);closeSheet();saveState('Debt deleted');}});
+  }
+
+  function isRunningStandalone(){
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  async function installDuckBudget(){
+    if(isRunningStandalone()){
+      showToast('Duck Budget is already installed');
+      return;
+    }
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{ await deferredInstallPrompt.userChoice; }catch(err){}
+      deferredInstallPrompt = null;
+      return;
+    }
+    alert('To add Duck Budget as an app, open your browser menu/share menu and choose “Add to Home Screen” or “Install app.” Once added, it will open in its own app-style window.');
+  }
+
+  function openSettings(){
+    openSheet('Settings',`
+      <div class="settings-section"><h3>Home screen</h3><div class="notice">${simpleMode()?'Catch-Up Mode keeps things simple while you work toward a full-paycheck budget.':'Classic Planner shows your original paycheck-based budgets and transaction history.'} Switching does not delete anything.</div><button class="btn primary full" id="modeToggleBtn" type="button" style="margin-top:11px">${simpleMode()?'Switch to Classic Paycheck Planner':'Switch to Simple Catch-Up Mode'}</button></div>
+      <div class="settings-section"><h3>App</h3><div class="notice">${isRunningStandalone() ? 'Duck Budget is already running as an installed app.' : 'Install Duck Budget on your Home Screen so it opens like its own app. Your budget still stays only on this device.'}</div>${isRunningStandalone() ? '' : '<button class="btn primary full" id="installAppBtn" type="button" style="margin-top:10px">Install / Add to Home Screen</button>'}</div>
+      <div class="settings-section"><h3>Backup</h3><div class="notice">Your budget stays in this browser on this device. Export a backup occasionally—especially before clearing browser data or changing the GitHub Pages URL.</div><div class="btn-row" style="margin-top:10px"><button class="btn soft" id="exportBtn" type="button">Export backup</button><label class="btn soft" style="display:grid;place-items:center;text-align:center"><input id="importInput" type="file" accept="application/json,.json" hidden>Import backup</label></div></div>
+      <div class="settings-section"><h3>Privacy</h3><div class="small muted">No bank login, card number, routing number, or account number is needed. This version has no server and sends no budget data anywhere.</div></div>
+      <div class="settings-section"><h3>Reset</h3><button class="btn danger full" id="resetBtn" type="button">Erase all budget data on this device</button></div>`);
+    $('#modeToggleBtn').addEventListener('click',()=>{state.simple.enabled=!simpleMode();closeSheet();currentTab='home';setTab('home');saveState(state.simple.enabled?'Catch-Up Mode enabled':'Classic Planner enabled');});
+    $('#installAppBtn')?.addEventListener('click',installDuckBudget);
+    $('#exportBtn').addEventListener('click',exportBackup);
+    $('#importInput').addEventListener('change',importBackup);
+    $('#resetBtn').addEventListener('click',()=>{if(confirm('Erase ALL Duck Budget data saved in this browser? This cannot be undone unless you exported a backup.')){localStorage.removeItem(STORAGE_KEY);state=defaultState();closeSheet();setTab('home');renderAll();showToast('All local data erased');}});
+  }
+
+  function exportBackup(){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`duck-budget-backup-${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),500); showToast('Backup exported');
+  }
+  function importBackup(e){
+    const file=e.target.files?.[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{ const parsed=JSON.parse(reader.result); const normalized=normalizeState(parsed); if(!confirm('Replace the budget data on this device with this backup?')) return; state=normalized; saveState('Backup imported'); closeSheet(); }
+      catch(err){ showToast('That file is not a valid Duck Budget backup'); }
+    };
+    reader.readAsText(file);
+  }
+
+  $('#settingsBtn').addEventListener('click',()=>openSettings());
+  $('#quickAddBtn').addEventListener('click',()=>openTransactionForm());
+  $('#closeSheetBtn').addEventListener('click',closeSheet);
+  $('#sheetBackdrop').addEventListener('click',e=>{if(e.target===$('#sheetBackdrop'))closeSheet();});
+  $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sheetBackdrop').classList.contains('open'))closeSheet();});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
