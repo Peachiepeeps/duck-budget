@@ -2,7 +2,7 @@
   "id": "/duck-budget/",
   "name": "Duck Budget",
   "short_name": "Duck Budget",
-  "description": "A private, local-first paycheck budgeting planner.",
+  "description": "A cozy, private budget app with catch-up, DailyPay, bills, and weekly meal planning.",
   "start_url": "/duck-budget/",
   "scope": "/duck-budget/",
   "display": "standalone",
