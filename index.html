@@ -414,10 +414,10 @@
       .shopping-day-text span{font-size:10px}
     }
 
-    /* Reusable meals + dedicated Other shopping section */
+    /* Reusable meals + grocery checklist and saved household essentials */
     .shopping-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}
     .shopping-actions .btn{min-height:38px;padding:8px 10px;font-size:12px}
-    .shopping-view-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .shopping-view-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
     .shopping-list-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0 8px;font-size:14px;color:var(--green-900)}
     .shopping-list-heading span{font-size:12px;color:var(--muted)}
     .shopping-other-heading{padding-top:10px;margin-top:12px;border-top:1px solid var(--line)}
@@ -427,6 +427,13 @@
     .shopping-other-row .shopping-check-row{flex:1;border:0;min-width:0}
     .shopping-other-row button{flex:0 0 auto}
     .shopping-other-copy{line-height:1.5;margin:0 0 8px}
+    .shopping-list-buttons{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .shopping-list-buttons .mini-action{min-height:32px;padding:6px 9px}
+    .shopping-group-row{display:flex;gap:5px;align-items:center;border-bottom:1px solid var(--line)}
+    .shopping-group-row .shopping-check-row{flex:1;min-width:0;border-bottom:0}
+    .shopping-group-row .mini-action{flex:none;padding:6px 8px}
+    .shopping-qty{color:var(--green-800);font-size:11px;font-weight:900;white-space:nowrap}
+    .shopping-section-hint{font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 7px}
     .shopping-saved-actions{display:flex;align-items:center;gap:7px;margin-top:11px;flex-wrap:wrap}
     .shopping-saved-actions .btn{min-height:36px;padding:7px 10px;font-size:12px}
     .shopping-saved-actions .mini-action{flex:1}
@@ -539,7 +546,7 @@
     enabled:true, balance:null, balanceUpdatedAt:'', nextPayday:'', typicalTakeHome:null,
     advanceCycles:{}, essentials:0, bufferReserved:0, bufferTarget:100
   });
-  const defaultState = () => ({ version:3, plans:[], transactions:[], bills:[], goals:[], debts:[], shoppingWeeks:{}, savedMeals:[], simple:defaultSimple() });
+  const defaultState = () => ({ version:3, plans:[], transactions:[], bills:[], goals:[], debts:[], shoppingWeeks:{}, savedMeals:[], savedOtherItems:[], simple:defaultSimple() });
   let state = loadState();
   let currentTab = 'home';
   let shoppingWeekStart = weekStartISO(todayISO());
@@ -573,6 +580,7 @@
       base.shoppingWeeks=Object.assign(Object.create(null),data.shoppingWeeks);
     }
     if(Array.isArray(data.savedMeals)) base.savedMeals=data.savedMeals;
+    if(Array.isArray(data.savedOtherItems)) base.savedOtherItems=data.savedOtherItems;
     if(data.simple && typeof data.simple==='object' && !Array.isArray(data.simple)){
       const old=data.simple, newer=defaultSimple();
       newer.enabled=old.enabled!==false;
@@ -1069,6 +1077,7 @@
   function shoppingOtherItems(){return Array.isArray(viewShoppingWeek().other)?viewShoppingWeek().other:[];}
   function editShoppingOther(){const week=editShoppingWeek();if(!Array.isArray(week.other))week.other=[];return week.other;}
   function savedShoppingMeals(){return Array.isArray(state.savedMeals)?state.savedMeals:[];}
+  function savedShoppingOther(){return Array.isArray(state.savedOtherItems)?state.savedOtherItems:[];}
   const shoppingItemCents=item=>Math.round(num(item.cost)*100);
   const shoppingMealCents=meal=>(meal.items||[]).reduce((sum,item)=>sum+shoppingItemCents(item),0);
   const shoppingDayCents=day=>shoppingDayMeals(day).reduce((sum,meal)=>sum+shoppingMealCents(meal),0);
@@ -1076,6 +1085,30 @@
   const shoppingOtherCents=()=>shoppingOtherItems().reduce((sum,item)=>sum+shoppingItemCents(item),0);
   const shoppingWeekCents=()=>shoppingMealsCents()+shoppingOtherCents();
   const shoppingCopyItems=items=>(items||[]).map(item=>({id:uid(),name:String(item.name||''),cost:num(item.cost),checked:false}));
+
+  // Same item name (ignoring capitalization / extra spaces) becomes one grocery line.
+  // Each original entry stays intact for prices, edits, past data, and weekly checkboxes.
+  function consolidatedShoppingItems(){
+    const grouped=new Map();
+    const add=(item,source,context={})=>{
+      const name=String(item.name||'').trim().replace(/\s+/g,' ');
+      if(!name)return;
+      const key=name.normalize('NFKC').toLocaleLowerCase();
+      if(!grouped.has(key))grouped.set(key,{name,entries:[],cents:0});
+      const group=grouped.get(key);
+      group.entries.push({item,source,...context});
+      group.cents+=shoppingItemCents(item);
+    };
+    SHOPPING_DAYS.forEach((day,di)=>shoppingDayMeals(di).forEach(meal=>(meal.items||[]).forEach(item=>add(item,'meal',{di,day,meal}))));
+    shoppingOtherItems().forEach(item=>add(item,'other'));
+    return [...grouped.values()].map(group=>({
+      ...group,
+      checkedCount:group.entries.filter(({item})=>!!item.checked).length,
+      allChecked:group.entries.every(({item})=>!!item.checked),
+      hasMeal:group.entries.some(entry=>entry.source==='meal'),
+      otherEntries:group.entries.filter(entry=>entry.source==='other')
+    }));
+  }
   function shoppingHomeCard(){
     const week=viewShoppingWeek();
     const total=shoppingWeekCents()/100;
@@ -1109,12 +1142,20 @@
         <span class="shopping-day-arrow" aria-hidden="true">›</span>
       </button>`;
     }).join('');
-    const ingredients=[];
-    SHOPPING_DAYS.forEach((day,di)=>shoppingDayMeals(di).forEach(meal=>(meal.items||[]).forEach(item=>ingredients.push({di,day,meal,item}))));
+    const groups=consolidatedShoppingItems();
+    const mealGroups=groups.filter(group=>group.hasMeal);
+    const otherGroups=groups.filter(group=>!group.hasMeal);
     const other=shoppingOtherItems();
-    const checked=ingredients.filter(x=>x.item.checked).length+other.filter(x=>x.checked).length;
-    const totalItems=ingredients.length+other.length;
-    const checkRow=({item,source='',di='',mealId='',detail=''})=>`<label class="shopping-check-row ${item.checked?'checked':''}"><input type="checkbox" data-shop-check="${escapeHtml(item.id)}" data-shop-source="${source}" ${source==='meal'?`data-shop-day="${di}" data-shop-meal="${escapeHtml(mealId)}"`:''} ${item.checked?'checked':''}><span><span class="shopping-check-label">${escapeHtml(item.name)}</span><small>${escapeHtml(detail)}</small></span><b>${money(shoppingItemCents(item)/100)}</b></label>`;
+    const checked=groups.filter(group=>group.allChecked).length;
+    const totalItems=groups.length;
+    const groupRow=(group)=>{
+      const index=groups.indexOf(group);
+      const count=group.entries.length;
+      const sources=[...new Set(group.entries.map(entry=>entry.source==='meal'?`${entry.day} · ${entry.meal.name}`:'Other'))];
+      const detail=`${count>1?`${count} needed · `:''}${sources.join(', ')}${group.checkedCount>0&&!group.allChecked?` · ${group.checkedCount}/${count} checked`:''}`;
+      const edit=group.otherEntries.length?`<button class="mini-action" type="button" data-shop-other-edit="${group.otherEntries.length===1?escapeHtml(group.otherEntries[0].item.id):'all'}" aria-label="Edit ${escapeHtml(group.name)}">Edit</button>`:'';
+      return `<div class="shopping-group-row"><label class="shopping-check-row ${group.allChecked?'checked':''}"><input type="checkbox" data-shop-group="${index}" ${group.allChecked?'checked':''} aria-label="${escapeHtml(group.name)}${count>1?`, ${count} entries`:''}"><span><span class="shopping-check-label">${escapeHtml(group.name)}${count>1?` <span class="shopping-qty">×${count}</span>`:''}</span><small>${escapeHtml(detail)}</small></span><b>${money(group.cents/100)}</b></label>${edit}</div>`;
+    };
     root.innerHTML=`
       <div class="page-title"><div class="shopping-heading">${duck('food')}<div><h2>Shopping & Meals</h2><div class="small muted">Plan once, reuse your favorites</div></div></div></div>
       <div class="card shopping-week-nav"><button class="mini-action" id="shoppingPrev" aria-label="Previous week" type="button">‹</button>
@@ -1124,16 +1165,13 @@
         <div class="progress ${isOver?'over':''}" role="progressbar" aria-label="Weekly planned shopping costs" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}"><span style="width:${progress}%"></span></div>
         <div class="shopping-metrics"><div><span>Meals + Other</span><strong>${money(costCents/100)}</strong></div><div><span>${isSet?(isOver?'Over budget':'Left to spend'):'Remaining'}</span><strong>${isSet?money(Math.abs(leftCents)/100):'—'}</strong></div></div></div>
       <div class="shopping-actions"><button class="btn primary" id="shoppingNewMealBtn" type="button">+ Meal</button><button class="btn soft" id="shoppingSavedMealsBtn" type="button">Saved meals (${savedShoppingMeals().length})</button></div>
-      <div class="shopping-view-tabs"><button class="${shoppingView==='meals'?'active':''}" type="button" data-shopping-view="meals">Meal plan</button><button class="${shoppingView==='list'?'active':''}" type="button" data-shopping-view="list">List (${checked}/${totalItems})</button><button class="${shoppingView==='other'?'active':''}" type="button" data-shopping-view="other">Other (${other.length})</button></div>
-      ${shoppingView==='meals'?`<div class="card shopping-day-card"><div class="shopping-days">${dayRows}</div></div><div class="one-screen-note">Recipes and Other items are estimates, not bank transactions.</div>`:
-      shoppingView==='list'?`<div class="card shopping-list-card"><div class="shopping-list-heading"><strong>Meal ingredients</strong><span>${ingredients.filter(x=>x.item.checked).length}/${ingredients.length}</span></div>
-        ${ingredients.length?ingredients.map(({di,day,meal,item})=>checkRow({item,source:'meal',di,mealId:meal.id,detail:`${day} · ${meal.name}`})).join(''):'<div class="small muted shopping-empty-section">Add a meal with ingredients to start your list.</div>'}
-        <div class="shopping-list-heading shopping-other-heading"><strong>Other essentials</strong><button class="mini-action" id="shoppingListOtherBtn" type="button">+ Other</button></div>
-        ${other.length?other.map(item=>checkRow({item,source:'other',detail:'Household & personal'})).join(''):'<div class="small muted shopping-empty-section">Cat food, toiletries, cleaning supplies, and more.</div>'}
-        <div class="one-screen-note">Each meal assignment has its own checkboxes, even if you use the same saved recipe again.</div></div>`:
-      `<div class="card shopping-list-card"><div class="shopping-list-heading"><strong>Other shopping</strong><button class="btn primary" id="shoppingAddOtherBtn" type="button">+ Other item</button></div><p class="small muted shopping-other-copy">Things outside your meal plan: cat food, detergent, paper towels, toiletries…</p>
-        ${other.length?other.map(item=>`<div class="shopping-other-row"><label class="shopping-check-row ${item.checked?'checked':''}"><input type="checkbox" data-shop-check="${escapeHtml(item.id)}" data-shop-source="other" ${item.checked?'checked':''}><span class="shopping-check-label">${escapeHtml(item.name)}</span><b>${money(shoppingItemCents(item)/100)}</b></label><button class="mini-action" type="button" data-shop-other-edit="${escapeHtml(item.id)}">Edit</button></div>`).join(''):'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>Nothing extra yet</strong><div class="small">Add household and pet essentials here.</div></div>'}
-        <div class="shopping-list-heading shopping-other-heading"><span>Other total</span><strong>${money(shoppingOtherCents()/100)}</strong></div></div>`}`;
+      <div class="shopping-view-tabs"><button class="${shoppingView==='meals'?'active':''}" type="button" data-shopping-view="meals">Meal plan</button><button class="${shoppingView==='list'?'active':''}" type="button" data-shopping-view="list">Grocery list (${checked}/${totalItems})</button></div>
+      ${shoppingView==='meals'?`<div class="card shopping-day-card"><div class="shopping-days">${dayRows}</div></div><div class="one-screen-note">Weekly grocery costs are estimates, not bank transactions.</div>`:
+      `<div class="card shopping-list-card"><div class="shopping-list-heading"><strong>Meal ingredients</strong><span>${mealGroups.filter(group=>group.allChecked).length}/${mealGroups.length}</span></div>
+        ${mealGroups.length?mealGroups.map(groupRow).join(''):'<div class="small muted shopping-empty-section">Add meals to fill your grocery list.</div>'}
+        <div class="shopping-list-heading shopping-other-heading"><strong>Other essentials</strong><div class="shopping-list-buttons"><button class="mini-action" id="shoppingListOtherBtn" type="button">+ Item</button><button class="mini-action" id="shoppingSavedOtherBtn" type="button">Saved (${savedShoppingOther().length})</button>${groups.some(g=>g.otherEntries.length>1)?'<button class="mini-action" id="shoppingManageOtherBtn" type="button">Manage</button>':''}</div></div>
+        ${otherGroups.length?otherGroups.map(groupRow).join(''):'<div class="small muted shopping-empty-section">Cat food, cleaning supplies, toiletries, and more. Add them here!</div>'}
+        <div class="shopping-section-hint">Matching names combine automatically (even across meals and Other). The total adds each entry’s estimated cost. Checking one combined item checks every matching entry. Use Manage to edit individual Other entries.</div></div>`}`;
     $('#shoppingPrev').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,-7);renderAll();});
     $('#shoppingNext').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,7);renderAll();});
     $$('[data-shopping-view]',root).forEach(b=>b.addEventListener('click',()=>{shoppingView=b.dataset.shoppingView;renderShopping();}));
@@ -1141,13 +1179,19 @@
     $('#shoppingNewMealBtn').addEventListener('click',()=>openMealBuilder());
     $('#shoppingSavedMealsBtn').addEventListener('click',openSavedMeals);
     $('#shoppingListOtherBtn')?.addEventListener('click',()=>openOtherItemForm());
-    $('#shoppingAddOtherBtn')?.addEventListener('click',()=>openOtherItemForm());
-    $$('[data-shop-other-edit]',root).forEach(btn=>btn.addEventListener('click',()=>openOtherItemForm(btn.dataset.shopOtherEdit)));
+    $('#shoppingSavedOtherBtn')?.addEventListener('click',openSavedOtherItems);
+    $('#shoppingManageOtherBtn')?.addEventListener('click',openManageOtherItems);
+    $$('[data-shop-other-edit]',root).forEach(btn=>btn.addEventListener('click',()=>btn.dataset.shopOtherEdit==='all'?openManageOtherItems():openOtherItemForm(btn.dataset.shopOtherEdit)));
     $$('[data-shopping-day]',root).forEach(b=>b.addEventListener('click',()=>openShoppingDay(Number(b.dataset.shoppingDay))));
-    $$('[data-shop-check]',root).forEach(input=>input.addEventListener('change',()=>{
-      const item=input.dataset.shopSource==='other'?editShoppingOther().find(x=>x.id===input.dataset.shopCheck):editShoppingDay(Number(input.dataset.shopDay)).find(m=>m.id===input.dataset.shopMeal)?.items?.find(x=>x.id===input.dataset.shopCheck);
-      if(item){item.checked=input.checked;saveState();}
-    }));
+    $$('[data-shop-group]',root).forEach(input=>{
+      const group=groups[Number(input.dataset.shopGroup)];
+      if(group && group.checkedCount>0 && !group.allChecked)input.indeterminate=true;
+      input.addEventListener('change',()=>{
+        if(!group)return;
+        group.entries.forEach(({item})=>{item.checked=input.checked;});
+        saveState();
+      });
+    });
   }
   function openShoppingBudget(){
     const week=viewShoppingWeek();
@@ -1255,26 +1299,80 @@
       state.savedMeals=state.savedMeals.filter(x=>x.id!==m.id);saveState('Saved recipe deleted');openSavedMeals(defaultDay);
     }));
   }
-  function openOtherItemForm(itemId=null){
+  function openOtherItemForm(itemId=null,{templateId=null,editTemplate=false}={}){
     const item=itemId?shoppingOtherItems().find(x=>x.id===itemId):null;
-    if(itemId&&!item)return;
-    openSheet(item?'Edit Other item':'Add Other item',`<form id="shoppingOtherForm" class="form-grid">
-      <div class="field"><label for="shoppingOtherName">Item</label><input id="shoppingOtherName" maxlength="80" required placeholder="e.g. Cat food" value="${escapeHtml(item?.name||'')}"></div>
-      <div class="field"><label for="shoppingOtherCost">Estimated cost ($)</label><input id="shoppingOtherCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" placeholder="0.00" required value="${item?escapeHtml(item.cost):''}"></div>
-      <div class="help">These items count toward your weekly shopping total and show in the same grocery checklist.</div>
-      <button class="btn primary full" type="submit">${item?'Save changes':'+ Add to Other'}</button>
-      ${item?'<button class="btn danger full" type="button" id="shoppingDeleteOther">Delete item</button>':''}
+    const template=templateId?savedShoppingOther().find(x=>x.id===templateId):null;
+    if(itemId&&!item||templateId&&!template)return;
+    const source=item||template;
+    openSheet(editTemplate?'Edit saved item':item?'Edit Other item':'Add Other item',`<form id="shoppingOtherForm" class="form-grid">
+      <div class="field"><label for="shoppingOtherName">Item</label><input id="shoppingOtherName" maxlength="80" required placeholder="e.g. Cat food" value="${escapeHtml(source?.name||'')}"></div>
+      <div class="field"><label for="shoppingOtherCost">Estimated cost ($)</label><input id="shoppingOtherCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" placeholder="0.00" required value="${source?escapeHtml(source.cost):''}"></div>
+      ${!editTemplate?`<label class="meal-builder-check"><input id="shoppingOtherInclude" type="checkbox" ${item?'checked disabled':'checked'}><span>Add to this week's list</span></label>
+      <label class="meal-builder-check"><input id="shoppingOtherSave" type="checkbox"><span>Save for later</span></label>`:'<div class="help">Editing a saved item will not change items already added to previous weeks.</div>'}
+      <div class="help">Other essentials count toward your weekly budget only when added to that week's shopping list.</div>
+      <button class="btn primary full" type="submit">${editTemplate?'Save saved item':item?'Save changes':'Add item'}</button>
+      ${item?'<button class="btn danger full" type="button" id="shoppingDeleteOther">Delete item from this week</button>':''}
     </form>`);
     $('#shoppingOtherForm').addEventListener('submit',e=>{
-      e.preventDefault();const name=$('#shoppingOtherName').value.trim();const cost=Number($('#shoppingOtherCost').value);
+      e.preventDefault();
+      const name=$('#shoppingOtherName').value.trim();const cost=Number($('#shoppingOtherCost').value);
       if(!name||!Number.isFinite(cost)||cost<0||cost>10000000){showToast('Enter a valid item and cost');return;}
-      if(item){item.name=name;item.cost=Math.round(cost*100)/100;}
-      else editShoppingOther().push({id:uid(),name,cost:Math.round(cost*100)/100,checked:false});
-      closeSheet();saveState(item?'Item updated':'Other item added');
+      const value=Math.round(cost*100)/100;
+      if(editTemplate){template.name=name;template.cost=value;}
+      else{
+        const include=$('#shoppingOtherInclude').checked;
+        const save=$('#shoppingOtherSave').checked;
+        if(!include&&!save){showToast('Add to this week or check Save for later');return;}
+        if(item){item.name=name;item.cost=value;}
+        else if(include)editShoppingOther().push({id:uid(),name,cost:value,checked:false});
+        if(save){
+          if(!Array.isArray(state.savedOtherItems))state.savedOtherItems=[];
+          const existing=savedShoppingOther().find(x=>x.name.trim().replace(/\s+/g,' ').toLocaleLowerCase()===name.replace(/\s+/g,' ').toLocaleLowerCase());
+          if(existing){existing.name=name;existing.cost=value;}
+          else state.savedOtherItems.push({id:uid(),name,cost:value});
+        }
+      }
+      const message=editTemplate?'Saved item updated':item?'Item updated':($('#shoppingOtherInclude').checked?'Other item added':'Saved for later');
+      closeSheet();saveState(message);
     });
     $('#shoppingDeleteOther')?.addEventListener('click',()=>{
-      if(confirm(`Delete ${item.name} from this week's list?`)){editShoppingWeek().other=editShoppingOther().filter(x=>x.id!==item.id);closeSheet();saveState('Other item deleted');}
+      if(confirm(`Delete ${item.name} from this week's list? Saved copies won't be deleted.`)){
+        editShoppingWeek().other=editShoppingOther().filter(x=>x.id!==item.id);
+        closeSheet();saveState('Other item deleted');
+      }
     });
+  }
+  function openSavedOtherItems(){
+    const saved=savedShoppingOther();
+    openSheet('Saved Other items',`<div class="notice">Reuse cat food, detergent, toiletries, and other essentials. Adding one makes a fresh copy for this week.</div>
+      <button class="btn primary full" type="button" id="newSavedOtherBtn" style="margin-top:12px">+ Save a new item</button>
+      ${saved.length?saved.map(item=>`<div class="shopping-meal"><div class="shopping-meal-head"><div><strong>${escapeHtml(item.name)}</strong><small>${money(shoppingItemCents(item)/100)} estimated</small></div></div><div class="shopping-saved-actions"><button class="btn soft" data-add-saved-other="${escapeHtml(item.id)}" type="button">Add to this week</button><button class="mini-action" data-edit-saved-other="${escapeHtml(item.id)}" type="button">Edit</button><button class="mini-action danger" data-delete-saved-other="${escapeHtml(item.id)}" type="button">Delete</button></div></div>`).join(''):'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>No saved essentials yet</strong><div class="small">Check “Save for later” when adding an Other item to keep it here.</div></div>'}`);
+    $('#newSavedOtherBtn').addEventListener('click',()=>{
+      openOtherItemForm();
+      $('#shoppingOtherInclude').checked=false;
+      $('#shoppingOtherSave').checked=true;
+    });
+    $$('[data-add-saved-other]').forEach(button=>button.addEventListener('click',()=>{
+      const source=savedShoppingOther().find(x=>x.id===button.dataset.addSavedOther);
+      if(!source)return;
+      editShoppingOther().push({id:uid(),name:source.name,cost:num(source.cost),checked:false});
+      closeSheet();saveState(`${source.name} added to this week`);
+    }));
+    $$('[data-edit-saved-other]').forEach(button=>button.addEventListener('click',()=>openOtherItemForm(null,{templateId:button.dataset.editSavedOther,editTemplate:true})));
+    $$('[data-delete-saved-other]').forEach(button=>button.addEventListener('click',()=>{
+      const source=savedShoppingOther().find(x=>x.id===button.dataset.deleteSavedOther);
+      if(!source||!confirm(`Delete ${source.name} from saved items? It will stay on any weekly list where you used it.`))return;
+      state.savedOtherItems=state.savedOtherItems.filter(x=>x.id!==source.id);
+      saveState('Saved item deleted');openSavedOtherItems();
+    }));
+  }
+  function openManageOtherItems(){
+    const items=shoppingOtherItems();
+    openSheet('Manage Other essentials',`<div class="notice">Edit or remove individual entries for this week. The grocery list combines identical names automatically.</div>
+      <button class="btn primary full" style="margin-top:12px" id="manageAddOther" type="button">+ Other item</button>
+      ${items.length?items.map(item=>`<div class="shopping-meal"><div class="shopping-meal-head"><div><strong>${escapeHtml(item.name)}</strong><small>${money(shoppingItemCents(item)/100)} · ${item.checked?'Checked':'Not checked'}</small></div><button class="mini-action" type="button" data-manage-other="${escapeHtml(item.id)}">Edit</button></div></div>`).join(''):'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>No Other essentials this week</strong></div>'}`);
+    $('#manageAddOther').addEventListener('click',()=>openOtherItemForm());
+    $$('[data-manage-other]').forEach(button=>button.addEventListener('click',()=>openOtherItemForm(button.dataset.manageOther)));
   }
 
   function setTab(tab){

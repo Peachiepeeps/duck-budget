@@ -1,5 +1,5 @@
 /* Duck Budget offline app shell: does not read or transmit financial data. */
-const CACHE = 'duck-budget-static-saved-meals-v2';
+const CACHE = 'duck-budget-static-combined-list-v3';
 const SHELL = [
   './','./index.html','./manifest.json',
   './images/budgeticon-180.png','./images/budgeticon-192.png','./images/budgeticon-512.png',

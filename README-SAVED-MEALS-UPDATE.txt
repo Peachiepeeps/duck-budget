@@ -1,12 +1,12 @@
-DUCK BUDGET — SAVED MEALS & OTHER SHOPPING UPDATE
+DUCK BUDGET — SAVED MEALS UPDATE (EARLIER VERSION; SEE README-COMBINED-LIST.txt)
 
 WHAT'S NEW
 - A + Meal button in Shopping opens a new meal builder.
 - Name a meal, optionally check "Save for later", select Sunday–Saturday or "Save only", and tap + Ingredient as often as needed.
 - Add a cost to each ingredient; blank cost means $0.00.
 - "Saved meals" shows reusable recipes. Choose "Add to a day" to create a fresh weekly copy, or edit/delete a saved recipe.
-- The new "Other" shopping view holds household/pet items, such as cat food and cleaning supplies.
-- The grocery List view contains ingredients from all assigned meals PLUS Other items, each with its own checkbox.
+- UPDATED: Other items now live inside the Grocery list view. You can save them for reuse in later weeks.
+- UPDATED: Matching ingredient/Other names are combined into one checkbox in the Grocery list.
 - Weekly planned total includes both meal ingredients and Other shopping.
 - Shopping costs are estimates and do not automatically deduct from your bank balance.
 
