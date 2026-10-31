@@ -1,9 +1,10 @@
 /* Duck Budget offline app shell: does not read or transmit financial data. */
-const CACHE = 'duck-budget-static-tabs-v1';
+const CACHE = 'duck-budget-static-saved-meals-v2';
 const SHELL = [
   './','./index.html','./manifest.json',
   './images/budgeticon-180.png','./images/budgeticon-192.png','./images/budgeticon-512.png',
   './images/budgeticon.png','./images/sticker-coin.png','./images/stickerbook-icon.png',
+  './images/Standard-duck.PNG','./images/Burger-duck.PNG','./images/Lemon-duck.PNG','./images/Fancy-duck.PNG','./images/Party-hat-duck.PNG','./images/sticker-crown.png',
   './images/duckie-days/quackers-idle.png','./images/duckie-days/bubble-duck.png',
   './images/duckie-days/shin-duck.png','./images/duckie-days/lain-duck.png',
   './images/duckie-days/tamao-duck.png','./images/duckie-days/strawbunny.webp',
