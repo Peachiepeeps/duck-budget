@@ -249,6 +249,10 @@
     .shopping-summary .progress{background:rgba(255,255,255,.22);height:11px;margin:13px 0 7px}
     .shopping-summary .progress > span{background:#dbd2ff}
     .shopping-summary .progress.over > span{background:#ffd0c9}
+    .shopping-unpriced-note{font-size:11px;line-height:1.35;margin-top:7px;color:#f4ebff;font-weight:700}
+    .shopping-cost{font-size:12px;text-align:right;white-space:nowrap}
+    .shopping-cost small{display:block;font-size:10px;line-height:1.3;margin-top:2px;color:var(--muted);font-weight:700}
+    .shopping-list-price-note{font-size:11px;color:var(--muted);margin:4px 0 8px;line-height:1.4}
     .shopping-metrics{display:flex;gap:10px;margin-top:15px}
     .shopping-metrics>div{flex:1;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:10px;background:rgba(255,255,255,.1);min-width:0}
     .shopping-metrics span{display:block;font-size:10px;font-weight:800;text-transform:uppercase;opacity:.85;letter-spacing:.04em}
@@ -485,6 +489,38 @@
     #page-shopping[data-shop-view="plan"][data-meal-view="weekly"] .shopping-days{gap:3px}
     #page-shopping[data-shop-view="plan"][data-meal-view="weekly"] .meal-plan-toolbar{margin-bottom:5px}
     #page-shopping[data-shop-view="plan"][data-meal-view="weekly"] .meal-plan-toolbar .btn{min-height:33px}
+  
+    /* Shopping list ordering and deliberate multi-item selection */
+    .shopping-list-topline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
+    .shopping-select-trigger{font-size:11px;min-height:29px;padding:5px 8px}
+    .shopping-row-actions{display:flex;align-items:center;gap:3px;flex:none}
+    .shopping-row-actions .mini-action{min-height:30px;padding:5px 6px;font-size:11px;border-radius:8px}
+    .shopping-row-actions .shopping-reorder{width:26px;min-width:26px;padding:0;font-size:16px;line-height:1}
+    .shopping-row-actions .mini-action:disabled{opacity:.27;cursor:default}
+    .shopping-group-row .shopping-check-row{gap:6px;min-width:0}
+    .shopping-group-row .shopping-check-row span{overflow-wrap:anywhere}
+    .shopping-group-row .shopping-cost{font-size:11px}
+    .shopping-pick-row.picked{background:#f5f1fb}
+    .shopping-pick-row.picked input{accent-color:#8757a4}
+    .shopping-bulk-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:5px 0;padding:7px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px}
+    .shopping-bulk-all{display:flex;align-items:center;gap:5px;font-weight:800}
+    .shopping-bulk-toolbar input,.saved-bulk-toolbar input,.shopping-saved-pick input{width:18px;height:18px;accent-color:var(--green-700);flex-shrink:0}
+    .shopping-bulk-toolbar #shoppingBulkCount{margin-right:auto;color:var(--muted);font-weight:700}
+    .shopping-bulk-toolbar .mini-action{font-size:11px;min-height:31px;padding:5px 8px}
+    .shopping-bulk-toolbar .mini-action:disabled,.saved-bulk-actions .btn:disabled{opacity:.45;cursor:default}
+    .saved-bulk-toolbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:12px 0 8px}
+    .saved-bulk-toolbar label{display:flex;align-items:center;gap:7px;font-weight:800}
+    .saved-bulk-toolbar span{color:var(--muted);font-size:11px}
+    .saved-bulk-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px}
+    .saved-bulk-actions .btn{min-height:38px;padding:7px 8px;font-size:11px}
+    .shopping-saved-row{display:flex;align-items:center;gap:7px;padding:10px 0;border-bottom:1px solid var(--line)}
+    .shopping-saved-pick{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+    .shopping-saved-pick span{min-width:0;overflow-wrap:anywhere}
+    .shopping-saved-pick strong{display:block;font-size:12px}
+    .shopping-saved-pick small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+    .shopping-saved-row .shopping-saved-actions{margin:0;gap:4px;flex:none}
+    .shopping-saved-row .shopping-saved-actions .mini-action{flex:0 0 auto;padding:5px 7px;min-height:30px;font-size:11px}
+    @media(max-width:365px){.shopping-row-actions .shopping-reorder{width:24px;min-width:24px}.shopping-row-actions .mini-action{padding:5px 4px}.shopping-group-row .shopping-check-row input{width:15px;height:15px}.shopping-saved-row .shopping-saved-actions .mini-action{padding:5px}}
   </style>
 </head>
 <body>
@@ -624,7 +660,7 @@
       for(const day of Array.isArray(week.days)?week.days:[]){
         for(const meal of Array.isArray(day?.meals)?day.meals:[]){
           for(const item of Array.isArray(meal.items)?meal.items:[]){
-            if(item && String(item.name||'').trim())week.other.push({id:crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2),name:String(item.name),cost:num(item.cost),checked:!!item.checked});
+            if(item && String(item.name||'').trim())week.other.push({id:crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2),name:String(item.name),cost:(item.cost==null||item.cost===''||!Number.isFinite(Number(item.cost))?null:Math.round(Math.max(0,Number(item.cost))*100)/100),checked:!!item.checked});
           }
         }
       }
@@ -1110,6 +1146,8 @@
   function shiftISO(iso,days){const d=parseDate(iso);d.setDate(d.getDate()+days);return toISO(d);}
   let shoppingView='list';
   let mealPlanView='weekly';
+  let shoppingSelectMode=false;
+  const selectedShoppingKeys=new Set();
   function blankShoppingWeek(){return {budget:null,days:Array.from({length:7},()=>({meals:[]})),other:[],shoppingListSeparated:true};}
   function viewShoppingWeek(){return state.shoppingWeeks?.[shoppingWeekStart]||blankShoppingWeek();}
   function editShoppingWeek(){
@@ -1130,12 +1168,16 @@
   function editShoppingOther(){const week=editShoppingWeek();if(!Array.isArray(week.other))week.other=[];return week.other;}
   function savedShoppingMeals(){return Array.isArray(state.savedMeals)?state.savedMeals:[];}
   function savedShoppingOther(){return Array.isArray(state.savedOtherItems)?state.savedOtherItems:[];}
-  const shoppingItemCents=item=>Math.round(num(item.cost)*100);
+  // Null means the price is still unknown. Explicit 0 is a real (known) price.
+  const shoppingHasPrice=item=>item && item.cost!==null && item.cost!==undefined && item.cost!=='' && Number.isFinite(Number(item.cost)) && Number(item.cost)>=0;
+  const shoppingPriceValue=item=>shoppingHasPrice(item)?Math.round(Number(item.cost)*100)/100:null;
+  const shoppingItemCents=item=>shoppingHasPrice(item)?Math.round(Number(item.cost)*100):0;
+  const shoppingPriceLabel=item=>shoppingHasPrice(item)?money(shoppingItemCents(item)/100):'Price not set';
   const shoppingMealCents=meal=>(meal.items||[]).reduce((sum,item)=>sum+shoppingItemCents(item),0);
   const shoppingDayCents=day=>shoppingDayMeals(day).reduce((sum,meal)=>sum+shoppingMealCents(meal),0);
   const shoppingOtherCents=()=>shoppingOtherItems().reduce((sum,item)=>sum+shoppingItemCents(item),0);
   const shoppingWeekCents=()=>shoppingOtherCents(); // only items actually on the shopping list
-  const shoppingCopyItems=items=>(items||[]).map(item=>({id:uid(),name:String(item.name||''),cost:num(item.cost),checked:false}));
+  const shoppingCopyItems=items=>(items||[]).map(item=>({id:uid(),name:String(item.name||''),cost:shoppingPriceValue(item),checked:false}));
   const shoppingKey=name=>String(name||'').trim().replace(/\s+/g,' ').normalize('NFKC').toLocaleLowerCase();
   function consolidatedShoppingItems(){
     const groups=new Map();
@@ -1143,16 +1185,37 @@
       const name=String(item.name||'').trim().replace(/\s+/g,' ');
       if(!name)continue;
       const key=shoppingKey(name);
-      if(!groups.has(key))groups.set(key,{name,entries:[],cents:0});
+      if(!groups.has(key))groups.set(key,{key,name,entries:[],cents:0,unpriced:0,priced:0});
       const group=groups.get(key);
       group.entries.push(item);group.cents+=shoppingItemCents(item);
+      if(shoppingHasPrice(item))group.priced++;else group.unpriced++;
     }
     return [...groups.values()].map(g=>({...g,allChecked:g.entries.every(x=>!!x.checked),checkedCount:g.entries.filter(x=>!!x.checked).length}));
+  }
+  // Move a visible grouped item (including its duplicates) without changing any
+  // item price, checkbox, or saved template. Storage order determines display order.
+  function moveShoppingGroup(index,direction){
+    const groups=consolidatedShoppingItems();
+    const next=index+direction;
+    if(!Number.isInteger(index)||![-1,1].includes(direction)||index<0||next<0||next>=groups.length)return;
+    [groups[index],groups[next]]=[groups[next],groups[index]];
+    editShoppingWeek().other=[...groups.flatMap(group=>group.entries),...editShoppingOther().filter(item=>!shoppingKey(item.name))];
+    saveState('Item moved');
+  }
+  function deleteSelectedShoppingGroups(){
+    const groups=consolidatedShoppingItems().filter(group=>selectedShoppingKeys.has(group.key));
+    if(!groups.length)return;
+    const n=groups.reduce((sum,group)=>sum+group.entries.length,0);
+    if(!confirm(`Remove ${groups.length} selected list item${groups.length===1?'':'s'} (${n} entr${n===1?'y':'ies'}) from this week? Saved items will stay.`))return;
+    const ids=new Set(groups.flatMap(group=>group.entries.map(entry=>entry.id)));
+    editShoppingWeek().other=editShoppingOther().filter(entry=>!ids.has(entry.id));
+    selectedShoppingKeys.clear();shoppingSelectMode=false;
+    saveState(`${groups.length} item${groups.length===1?'':'s'} removed`);
   }
   function shoppingHomeCard(){
     const week=viewShoppingWeek();const total=shoppingWeekCents()/100;
     return `<div class="card shopping-entry">${duck('shopping')}
-      <div class="shopping-entry-copy"><strong>Shopping & Meals</strong><span>Shop first, decide meals later. ${money(total)} on this week's list · ${week.budget===null||week.budget===undefined?'No budget yet':money(week.budget)+' budget'}</span></div>
+      <div class="shopping-entry-copy"><strong>Shopping & Meals</strong><span>Shop first, decide meals later. ${money(total)} in known prices${shoppingOtherItems().filter(item=>!shoppingHasPrice(item)).length?' · Some prices not set':''} · ${week.budget===null||week.budget===undefined?'No budget yet':money(week.budget)+' budget'}</span></div>
       <button class="shopping-entry-button" type="button" id="homeShoppingBtn">Open →</button></div>`;
   }
   function addMissingMealIngredients(){
@@ -1167,7 +1230,7 @@
     for(const [key,items] of wanted){
       const already=have.get(key)||0;
       for(const item of items.slice(already)){
-        editShoppingOther().push({id:uid(),name:item.name,cost:num(item.cost),checked:false});added++;
+        editShoppingOther().push({id:uid(),name:item.name,cost:shoppingPriceValue(item),checked:false});added++;
       }
     }
     if(added)saveState(`${added} missing ingredient${added===1?'':'s'} added`);
@@ -1182,10 +1245,16 @@
     const pct=budgetCents>0?Math.min(100,100*totalCents/budgetCents):(totalCents>0?100:0);
     const range=`${formatDate(shoppingWeekStart)} – ${formatDate(shiftISO(shoppingWeekStart,6))}`;
     const groups=consolidatedShoppingItems(),checked=groups.filter(g=>g.allChecked).length;
+    const unpricedItems=shoppingOtherItems().filter(item=>!shoppingHasPrice(item)).length;
     const listRow=(group,i)=>{
       const n=group.entries.length;
       const id=n===1?escapeHtml(group.entries[0].id):'all';
-      return `<div class="shopping-group-row"><label class="shopping-check-row ${group.allChecked?'checked':''}"><input type="checkbox" data-shop-group="${i}" ${group.allChecked?'checked':''} aria-label="${escapeHtml(group.name)}"><span><span class="shopping-check-label">${escapeHtml(group.name)}${n>1?` <span class="shopping-qty">×${n}</span>`:''}</span><small>${n>1?`${n} entries combined`:''}${group.checkedCount>0&&!group.allChecked?` · ${group.checkedCount}/${n} checked`:''}</small></span><b>${money(group.cents/100)}</b></label><button class="mini-action" type="button" data-shop-item-edit="${id}" aria-label="Edit ${escapeHtml(group.name)}">Edit</button></div>`;
+      const label=`<span><span class="shopping-check-label">${escapeHtml(group.name)}${n>1?` <span class="shopping-qty">×${n}</span>`:''}</span><small>${n>1?`${n} entries combined`:''}${group.checkedCount>0&&!group.allChecked?` · ${group.checkedCount}/${n} bought`:''}</small></span><b class="shopping-cost">${group.priced?money(group.cents/100):'Price not set'}${group.unpriced&&group.priced?`<small>${group.unpriced} price${group.unpriced===1?'':'s'} missing</small>`:''}</b>`;
+      if(shoppingSelectMode){
+        const picked=selectedShoppingKeys.has(group.key);
+        return `<div class="shopping-group-row shopping-selecting"><label class="shopping-check-row shopping-pick-row ${picked?'picked':''}"><input type="checkbox" data-shop-select="${escapeHtml(group.key)}" ${picked?'checked':''} aria-label="Select ${escapeHtml(group.name)} for removal">${label}</label></div>`;
+      }
+      return `<div class="shopping-group-row"><label class="shopping-check-row ${group.allChecked?'checked':''}"><input type="checkbox" data-shop-group="${i}" ${group.allChecked?'checked':''} aria-label="Bought ${escapeHtml(group.name)}">${label}</label><div class="shopping-row-actions"><button class="mini-action shopping-reorder" data-shop-move="${i}" data-dir="-1" type="button" aria-label="Move ${escapeHtml(group.name)} up" title="Move up" ${i===0?'disabled':''}>↑</button><button class="mini-action shopping-reorder" data-shop-move="${i}" data-dir="1" type="button" aria-label="Move ${escapeHtml(group.name)} down" title="Move down" ${i===groups.length-1?'disabled':''}>↓</button><button class="mini-action shopping-edit" type="button" data-shop-item-edit="${id}" aria-label="Edit ${escapeHtml(group.name)}">Edit</button></div></div>`;
     };
     const dayRows=SHOPPING_DAYS.map((name,i)=>{
       const meals=shoppingDayMeals(i),date=shiftISO(shoppingWeekStart,i);
@@ -1209,21 +1278,28 @@
       <div class="card shopping-week-nav"><button class="mini-action" id="shoppingPrev" aria-label="Previous week" type="button">‹</button><div class="shopping-week-label">${range}<small>${shoppingWeekStart===weekStartISO(todayISO())?'This week':'Sunday – Saturday'}</small></div><button class="mini-action" id="shoppingNext" aria-label="Next week" type="button">›</button></div>
       <div class="card shopping-summary"><div class="shopping-budget-line"><div><div class="eyebrow">Weekly budget</div><div class="shopping-budget-value">${budgetSet?money(week.budget):'Not set'}</div></div><button class="btn" type="button" id="shoppingBudgetBtn">${budgetSet?'Edit':'Set'} budget</button></div>
         <div class="progress ${over?'over':''}" role="progressbar" aria-label="Weekly shopping total compared to budget" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><span style="width:${pct}%"></span></div>
-        <div class="shopping-metrics"><div><span>Weekly total</span><strong>${money(totalCents/100)}</strong></div><div><span>${budgetSet?(over?'Over budget':'Remaining'):'Remaining'}</span><strong>${budgetSet?money(Math.abs(left)/100):'—'}</strong></div></div></div>
+        <div class="shopping-metrics"><div><span>Weekly total (priced)</span><strong>${money(totalCents/100)}</strong></div><div><span>${budgetSet?(over?'Over budget':'Remaining so far'):'Remaining'}</span><strong>${budgetSet?money(Math.abs(left)/100):'—'}</strong></div></div>${unpricedItems?`<div class="shopping-unpriced-note">${unpricedItems} item${unpricedItems===1?' still needs':'s still need'} a price. Your final total may be higher.</div>`:''}</div>
       <div class="shopping-view-tabs" role="group" aria-label="Shopping area"><button class="${shoppingView==='list'?'active':''}" type="button" data-shopping-view="list">Shopping List</button><button class="${shoppingView==='plan'?'active':''}" type="button" data-shopping-view="plan">Meal Plan</button></div>
       ${shoppingView==='list'?`<div class="card shopping-list-card"><div class="shopping-list-heading"><strong>My list · ${money(totalCents/100)}</strong><div class="shopping-list-buttons"><button class="mini-action" id="shoppingListOtherBtn" type="button">+ New Item</button><button class="mini-action" id="shoppingSavedOtherBtn" type="button">Saved (${savedShoppingOther().length})</button></div></div>
-        <div class="shopping-list-progress">${checked}/${groups.length} checked off</div>
+        ${shoppingSelectMode?`<div class="shopping-bulk-toolbar"><label class="shopping-bulk-all"><input id="shoppingSelectAll" type="checkbox" ${groups.length&&selectedShoppingKeys.size===groups.length?'checked':''}> Select all</label><span id="shoppingBulkCount">${selectedShoppingKeys.size} selected</span><button class="mini-action danger" type="button" id="shoppingBulkDelete" ${selectedShoppingKeys.size?'':'disabled'}>Remove selected</button><button class="mini-action" type="button" id="shoppingBulkCancel">Cancel</button></div>`:`<div class="shopping-list-topline"><span class="shopping-list-progress">${checked}/${groups.length} bought</span><button type="button" id="shoppingSelectItems" class="mini-action shopping-select-trigger" ${groups.length?'':'disabled'}>Select items to remove</button></div>`}
+        ${unpricedItems?`<div class="shopping-list-price-note">${unpricedItems} item${unpricedItems===1?' has':'s have'} no price yet. Tap Edit while you shop to add one.</div>`:''}
         ${groups.length?groups.map(listRow).join(''):'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>Your list is ready!</strong><div class="small">Add groceries, cat food, cleaning supplies or anything else. No recipe required.</div></div>'}
         <div class="shopping-section-hint">Matching item names combine automatically. Only shopping-list items affect the weekly total.</div></div>`:
       `<div class="shopping-view-tabs meal-subtabs" role="group" aria-label="Meal planning area"><button type="button" data-meal-view="weekly" class="${mealPlanView==='weekly'?'active':''}">Weekly Meal Plan</button><button type="button" data-meal-view="saved" class="${mealPlanView==='saved'?'active':''}">Saved Meals (${recipes.length})</button></div>
         ${mealPlanView==='weekly'?`<div class="meal-plan-toolbar"><button class="btn primary" id="shoppingNewMealBtn" type="button">+ Meal</button><button class="btn soft" type="button" id="shoppingMissingIngredientsBtn">+ Missing ingredients</button></div><div class="card shopping-day-card"><div class="shopping-days">${dayRows}</div></div><div class="shopping-section-hint">Your recipes are separate from the grocery list. Tap “+ Missing ingredients” only when you're ready to shop.</div>`:savedContent}`}`;
-    $('#shoppingPrev').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,-7);renderAll();});
-    $('#shoppingNext').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,7);renderAll();});
+    $('#shoppingPrev').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,-7);shoppingSelectMode=false;selectedShoppingKeys.clear();renderAll();});
+    $('#shoppingNext').addEventListener('click',()=>{shoppingWeekStart=shiftISO(shoppingWeekStart,7);shoppingSelectMode=false;selectedShoppingKeys.clear();renderAll();});
     $('#shoppingBudgetBtn').addEventListener('click',openShoppingBudget);
-    $$('[data-shopping-view]',root).forEach(b=>b.addEventListener('click',()=>{shoppingView=b.dataset.shoppingView;renderShopping();}));
+    $$('[data-shopping-view]',root).forEach(b=>b.addEventListener('click',()=>{shoppingView=b.dataset.shoppingView;if(shoppingView!=='list'){shoppingSelectMode=false;selectedShoppingKeys.clear();}renderShopping();}));
     $$('[data-meal-view]',root).forEach(b=>b.addEventListener('click',()=>{mealPlanView=b.dataset.mealView;renderShopping();}));
     $('#shoppingListOtherBtn')?.addEventListener('click',()=>openOtherItemForm());
     $('#shoppingSavedOtherBtn')?.addEventListener('click',openSavedOtherItems);
+    $('#shoppingSelectItems')?.addEventListener('click',()=>{shoppingSelectMode=true;selectedShoppingKeys.clear();renderShopping();});
+    $('#shoppingBulkCancel')?.addEventListener('click',()=>{shoppingSelectMode=false;selectedShoppingKeys.clear();renderShopping();});
+    $('#shoppingSelectAll')?.addEventListener('change',e=>{selectedShoppingKeys.clear();if(e.target.checked)groups.forEach(g=>selectedShoppingKeys.add(g.key));renderShopping();});
+    $$('[data-shop-select]',root).forEach(input=>input.addEventListener('change',()=>{if(input.checked)selectedShoppingKeys.add(input.dataset.shopSelect);else selectedShoppingKeys.delete(input.dataset.shopSelect);renderShopping();}));
+    $('#shoppingBulkDelete')?.addEventListener('click',deleteSelectedShoppingGroups);
+    $$('[data-shop-move]',root).forEach(b=>b.addEventListener('click',()=>moveShoppingGroup(Number(b.dataset.shopMove),Number(b.dataset.dir))));
     $$('[data-shop-item-edit]',root).forEach(b=>b.addEventListener('click',()=>b.dataset.shopItemEdit==='all'?openManageOtherItems():openOtherItemForm(b.dataset.shopItemEdit)));
     $$('[data-shop-group]',root).forEach(b=>{
       const g=groups[Number(b.dataset.shopGroup)];if(g&&g.checkedCount>0&&!g.allChecked)b.indeterminate=true;
@@ -1305,9 +1381,9 @@
       for(const r of box.querySelectorAll('.meal-ingredient-row')){
         const itemName=r.querySelector('[name="ingredientName"]').value.trim();const raw=r.querySelector('[name="ingredientCost"]').value.trim();
         if(!itemName&&!raw)continue;
-        const cost=raw===''?0:Number(raw);
-        if(!itemName||!Number.isFinite(cost)||cost<0||cost>10000000){showToast('Enter an ingredient name and valid cost');return;}
-        ingredients.push({name:itemName,cost:Math.round(cost*100)/100});
+        const cost=raw===''?null:Number(raw);
+        if(!itemName||(cost!==null&&(!Number.isFinite(cost)||cost<0||cost>10000000))){showToast('Enter an ingredient name and, if included, a valid cost');return;}
+        ingredients.push({name:itemName,cost:cost===null?null:Math.round(cost*100)/100});
       }
       if(editTemplate){template.name=name;template.mealType=newType;template.items=ingredients;}
       else if(existing){
@@ -1337,15 +1413,16 @@
     const source=item||template;
     openSheet(editTemplate?'Edit saved item':item?'Edit shopping item':'+ New Shopping Item',`<form id="shoppingOtherForm" class="form-grid">
       <div class="field"><label for="shoppingOtherName">Item name</label><input id="shoppingOtherName" maxlength="80" required placeholder="e.g. Ground chicken, cat food" value="${escapeHtml(source?.name||'')}"></div>
-      <div class="field"><label for="shoppingOtherCost">Price ($)</label><input id="shoppingOtherCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" required placeholder="0.00" value="${source?escapeHtml(source.cost):''}"></div>
+      <div class="field"><label for="shoppingOtherCost">Price ($) · Optional</label><input id="shoppingOtherCost" type="number" min="0" max="10000000" step="0.01" inputmode="decimal" placeholder="Enter when you know it" value="${source?.cost==null?'':escapeHtml(source.cost)}"><div class="help">Leave blank for now. You can tap Edit on your list to add the price at the store.</div></div>
       ${editTemplate?'<div class="help">Changing a saved item will not change earlier shopping weeks.</div>':`<label class="meal-builder-check"><input type="checkbox" id="shoppingOtherInclude" ${item?'checked disabled':'checked'}><span>Add to this week’s shopping list</span></label>
         <label class="meal-builder-check"><input type="checkbox" id="shoppingOtherSave"><span>Save item for later</span></label>`}
       <button class="btn primary full" type="submit">${editTemplate?'Save reusable item':item?'Save changes':'Add item'}</button>
       ${item?'<button class="btn danger full" id="shoppingDeleteOther" type="button">Remove from this week</button>':''}</form>`);
     $('#shoppingOtherForm').addEventListener('submit',e=>{
-      e.preventDefault();const name=$('#shoppingOtherName').value.trim(),cost=Number($('#shoppingOtherCost').value);
-      if(!name||!Number.isFinite(cost)||cost<0||cost>10000000){showToast('Enter an item and a valid price');return;}
-      const value=Math.round(cost*100)/100;
+      e.preventDefault();const name=$('#shoppingOtherName').value.trim(),rawPrice=$('#shoppingOtherCost').value.trim();
+      const cost=rawPrice===''?null:Number(rawPrice);
+      if(!name||(cost!==null&&(!Number.isFinite(cost)||cost<0||cost>10000000))){showToast('Enter an item name and, if included, a valid price');return;}
+      const value=cost===null?null:Math.round(cost*100)/100;
       if(editTemplate){template.name=name;template.cost=value;}
       else{
         const include=$('#shoppingOtherInclude').checked,save=$('#shoppingOtherSave').checked;
@@ -1360,18 +1437,60 @@
   }
   function openSavedOtherItems(){
     const saved=savedShoppingOther();
-    openSheet('Saved Shopping Items',`<div class="notice">Keep frequently needed groceries and household items here. Adding one to a week makes a fresh copy.</div>
-      <button class="btn primary full" type="button" id="newSavedOtherBtn" style="margin-top:12px">+ Save a new item</button>
-      ${saved.length?saved.map(item=>`<div class="shopping-meal"><div class="shopping-meal-head"><div><strong>${escapeHtml(item.name)}</strong><small>${money(shoppingItemCents(item)/100)} estimated</small></div></div><div class="shopping-saved-actions"><button class="btn soft" data-add-saved-other="${escapeHtml(item.id)}" type="button">Add to this week</button><button class="mini-action" data-edit-saved-other="${escapeHtml(item.id)}" type="button">Edit</button><button class="mini-action danger" data-delete-saved-other="${escapeHtml(item.id)}" type="button">Delete</button></div></div>`).join(''):'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>No saved items yet</strong></div>'}`);
+    // Selection is temporary; it never changes which items are saved.
+    const selected=new Set();
+    openSheet('Saved Shopping Items',`<div class="notice">Pick several saved items and add them together. Matching items already on this week's list are skipped so they aren't counted twice. To add another quantity, use an item's Add button.</div>
+      <button class="btn primary full" type="button" id="newSavedOtherBtn" style="margin-top:10px">+ Save a new item</button>
+      ${saved.length?`<div class="saved-bulk-toolbar"><label><input type="checkbox" id="savedOtherSelectAll"> Select all</label><span id="savedOtherCount">0 selected</span></div><div class="saved-bulk-actions"><button class="btn primary" id="addSavedSelected" type="button" disabled>Add selected (0)</button><button class="btn soft" id="deleteSavedSelected" type="button" disabled>Delete selected</button></div>
+        ${saved.map(item=>`<div class="shopping-meal shopping-saved-row"><label class="shopping-saved-pick"><input type="checkbox" data-pick-saved="${escapeHtml(item.id)}" aria-label="Select saved item ${escapeHtml(item.name)}"><span><strong>${escapeHtml(item.name)}</strong><small>${shoppingPriceLabel(item)}${shoppingHasPrice(item)?' estimated':''}</small></span></label><div class="shopping-saved-actions"><button class="mini-action" data-add-saved-other="${escapeHtml(item.id)}" type="button">Add</button><button class="mini-action" data-edit-saved-other="${escapeHtml(item.id)}" type="button">Edit</button></div></div>`).join('')}`:'<div class="empty"><img class="shopping-empty-duck" src="images/Standard-duck.PNG" alt=""><strong>No saved items yet</strong></div>'}`);
     $('#newSavedOtherBtn').addEventListener('click',()=>{openOtherItemForm();$('#shoppingOtherInclude').checked=false;$('#shoppingOtherSave').checked=true;});
-    $$('[data-add-saved-other]').forEach(b=>b.addEventListener('click',()=>{const source=savedShoppingOther().find(x=>x.id===b.dataset.addSavedOther);if(!source)return;editShoppingOther().push({id:uid(),name:source.name,cost:num(source.cost),checked:false});closeSheet();saveState(`${source.name} added`);}));
+    const picks=$$('[data-pick-saved]');
+    function syncSavedSelection(){
+      $('#savedOtherCount').textContent=`${selected.size} selected`;
+      $('#addSavedSelected').disabled=!selected.size;
+      $('#addSavedSelected').textContent=`Add selected (${selected.size})`;
+      $('#deleteSavedSelected').disabled=!selected.size;
+      const all=$('#savedOtherSelectAll');
+      all.checked=!!picks.length&&selected.size===picks.length;
+      all.indeterminate=selected.size>0&&selected.size<picks.length;
+    }
+    picks.forEach(input=>input.addEventListener('change',()=>{
+      if(input.checked)selected.add(input.dataset.pickSaved);else selected.delete(input.dataset.pickSaved);
+      syncSavedSelection();
+    }));
+    $('#savedOtherSelectAll')?.addEventListener('change',e=>{
+      selected.clear();
+      picks.forEach(input=>{input.checked=e.target.checked;if(input.checked)selected.add(input.dataset.pickSaved)});
+      syncSavedSelection();
+    });
+    $('#addSavedSelected')?.addEventListener('click',()=>{
+      const already=new Set(shoppingOtherItems().map(item=>shoppingKey(item.name)));
+      let added=0,skipped=0;
+      for(const source of savedShoppingOther()){
+        if(!selected.has(source.id))continue;
+        const key=shoppingKey(source.name);
+        if(!key||already.has(key)){skipped++;continue;}
+        editShoppingOther().push({id:uid(),name:source.name,cost:shoppingPriceValue(source),checked:false});
+        already.add(key);added++;
+      }
+      closeSheet();saveState(`${added} item${added===1?'':'s'} added${skipped?` · ${skipped} already on list`:''}`);
+    });
+    $('#deleteSavedSelected')?.addEventListener('click',()=>{
+      if(!selected.size||!confirm(`Delete ${selected.size} saved item${selected.size===1?'':'s'}? Items already on shopping weeks will stay.`))return;
+      state.savedOtherItems=savedShoppingOther().filter(item=>!selected.has(item.id));
+      saveState(`${selected.size} saved item${selected.size===1?'':'s'} deleted`);openSavedOtherItems();
+    });
+    $$('[data-add-saved-other]').forEach(b=>b.addEventListener('click',()=>{
+      const source=savedShoppingOther().find(x=>x.id===b.dataset.addSavedOther);if(!source)return;
+      editShoppingOther().push({id:uid(),name:source.name,cost:shoppingPriceValue(source),checked:false});
+      closeSheet();saveState(`${source.name} added`);
+    }));
     $$('[data-edit-saved-other]').forEach(b=>b.addEventListener('click',()=>openOtherItemForm(null,{templateId:b.dataset.editSavedOther,editTemplate:true})));
-    $$('[data-delete-saved-other]').forEach(b=>b.addEventListener('click',()=>{const source=savedShoppingOther().find(x=>x.id===b.dataset.deleteSavedOther);if(!source||!confirm(`Delete saved item ${source.name}?`))return;state.savedOtherItems=state.savedOtherItems.filter(x=>x.id!==source.id);saveState('Saved item deleted');openSavedOtherItems();}));
   }
   function openManageOtherItems(){
     const items=shoppingOtherItems();
     openSheet('Edit shopping list',`<div class="notice">Edit individual entries when an item appears more than once.</div><button class="btn primary full" style="margin-top:10px" id="manageAddOther" type="button">+ New Item</button>
-      ${items.length?items.map(item=>`<div class="shopping-meal"><div class="shopping-meal-head"><div><strong>${escapeHtml(item.name)}</strong><small>${money(shoppingItemCents(item)/100)} · ${item.checked?'Checked':'Not checked'}</small></div><button class="mini-action" data-manage-other="${escapeHtml(item.id)}" type="button">Edit</button></div></div>`).join(''):'<div class="small muted">Your list is empty.</div>'}`);
+      ${items.length?items.map(item=>`<div class="shopping-meal"><div class="shopping-meal-head"><div><strong>${escapeHtml(item.name)}</strong><small>${shoppingPriceLabel(item)} · ${item.checked?'Checked':'Not checked'}</small></div><button class="mini-action" data-manage-other="${escapeHtml(item.id)}" type="button">Edit</button></div></div>`).join(''):'<div class="small muted">Your list is empty.</div>'}`);
     $('#manageAddOther').addEventListener('click',()=>openOtherItemForm());
     $$('[data-manage-other]').forEach(b=>b.addEventListener('click',()=>openOtherItemForm(b.dataset.manageOther)));
   }
